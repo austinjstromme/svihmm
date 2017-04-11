@@ -31,4 +31,4 @@ class mn_emitter:
    """
    returns the number of states, s
    """
-   return p.shape[0]
+   return self.p.shape[0]

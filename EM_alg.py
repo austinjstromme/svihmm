@@ -1,6 +1,6 @@
 import numpy as np
-import fb_main as fb
-
+import fb_compute as fb
+from multinoulli_emitter import mn_emitter as mne
 
 def EM_main(x, A, B, pi):
   """
@@ -30,6 +30,10 @@ def EM_main(x, A, B, pi):
   B_expect = [[obs_count(x, gamma_data, j, l)/state_count(gamma_data, j)
                 for l in range(0,s)] for j in xrange(0,K)]
 
+  #print("find pi_expect = " + str(pi_expect))
+  #print("find A_expect = " + str(A_expect))
+  #print("find B_expect = " + str(B_expect))
+
   #in -place update everybody now
   for k in range(0, K):
     pi[k] = pi_expect[k]
@@ -40,17 +44,14 @@ def EM_main(x, A, B, pi):
       A[j][k] = A_expect[j][k]/row_sum
 
   for j in range(0, K):
-    for l in range(0, s):
-      B[j][l] = B_expect[j][l]
+    B[j] = mne(np.array(B_expect[j]))
 
-   return
-
-def trans_count(xi_data, j, k)
+def trans_count(xi_data, j, k):
   """
   returns the expected number of transitions from
   state j to state k
   """
-  N = len(gamma_data)
+  N = len(xi_data)
   return sum([sum(xi_data[i][:][j][k]) for i in xrange(0,N)])
 
 def start_count(gamma_data, k):
@@ -69,7 +70,8 @@ def state_count(gamma_data, j):
   N = len(gamma_data)
   res = 0.0
   for i in range(0,N):
-    res += sum([gamma_data[i][t][j] for t in xrange(0,N)])
+    res += sum([gamma_data[i][t][j] for t in 
+               xrange(0,gamma_data[i].shape[0])])
   return res
 
 def obs_count(x, gamma_data, j, l):
