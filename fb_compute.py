@@ -2,35 +2,45 @@ import numpy as np
 
 def fb_main(x, A, B, pi):
   """
-  x is a 1xT np.array of observations
+  x is a Tx1 np.array of observations
   A is a KxK np.array of transition probabilities
-  B is an emitter (see emitter.py)
-  pi is a 1xK np.array of starting probabilites
+  B is a Kx1 list of emitters (see emitter.py)
+  pi is a Kx1 np.array of starting probabilites
 
   Computes the smooth posterior marginals gamma[t][j]
    using the forwards backwards algorithm.
 
-  RETURNS: gamma, a TxK np.array where gamma[t][j]
-   is the probability z_t = j conditioned on the 
-   observations x.
+  RETURNS: [gamma, xi], where gamma is a TxK np.array 
+   where gamma[t][j] is the probability z_t = j conditioned 
+   on the observations x. xi is a (T - 1)xKxK np.array of the
+   two slice marginals, i.e. xi[t][i][j] = 
+   p(z_t = i, z_{t + 1} = j | x)
   """
+  psi = np.array([[B[i].prob_obs(x[t]) for i in range(0,len(B))]
+          for t in range(0, len(x))])
 
-  alpha = forward_alg(x, A, B, pi)[0]
-  beta = backward_alg(x, A, B, pi)
+  alpha = forward_alg(x, A, B, pi, psi)[0]
+  beta = backward_alg(x, A, B, pi, psi)
+
+  # xi[t] is proportional to A o (alpha_t (phi_(t + 1) o 
+  #  beta[t + 1])^T)
+  xi = [normalize(np.multiply(A, np.outer(alpha[t],
+         np.multiply(psi[t + 1], beta[t + 1]))))[0]
+         for t in range(0, len(x) - 1)]
 
   gamma = np.array([normalize(np.multiply(alpha[t], beta[t]))[0] 
     for t in range(0,len(x))])
-      
-  return gamma
+
+  return [gamma, xi]
   
-def forward_alg(x, A, B, pi):
+def forward_alg(x, A, B, pi, psi):
   """
-  x is a 1xT np.array of observations
-  A is a KxK np.array of transition probabilities; A[i][j] is prob.
-   of i -> j
-  B is a 1xK list of emitters; the kth on describes the
-   emissions from state k
-  pi is a 1xK np.array of initial state probabilites
+  x is a Tx1 np.array of observations
+  A is a KxK np.array of transition probabilities
+  B is a Kx1 list of emitters (see emitter.py)
+  pi is a Kx1 np.array of starting probabilites
+  psi is a TxK np.array of local evidences, i.e. psi[t][i]
+    is p(x[t] | z_i) in Murphy Chapter 17 notation.
 
   This method computes the forward direction of the
   forward backward algorithm.
@@ -41,25 +51,25 @@ def forward_alg(x, A, B, pi):
   """
   alpha = []
   Z = []
-  psi = np.array([B[i].prob_obs(x[0]) for i in range(0,len(B))])
-  res = normalize(np.multiply(psi, pi))
+  res = normalize(np.multiply(psi[0], pi))
   alpha.append(res[0])
   Z.append(res[1])
 
   for t in range(1, len(x)):
-    psi = np.array([B[i].prob_obs(x[t]) for i in range(0,len(B))])
-    res = normalize(np.multiply(psi, np.transpose(A).dot(alpha[t-1])))
+    res = normalize(np.multiply(psi[t], np.transpose(A).dot(alpha[t-1])))
     alpha.append(res[0])
     Z.append(res[1])
   
   return [np.vstack(alpha), np.array(Z)]
 
-def backward_alg(x, A, B, pi):
+def backward_alg(x, A, B, pi, psi):
   """
-  x is a 1xT np.array of observations
+  x is a Tx1 np.array of observations
   A is a KxK np.array of transition probabilities
-  B is an emitter (see emitter.py)
-  pi is a 1xK np.array of starting probabilites
+  B is a Kx1 list of emitters (see emitter.py)
+  pi is a Kx1 np.array of starting probabilites
+  psi is a TxK np.array of local evidences, i.e. psi[t][i]
+    is p(x[t] | z_i) in Murphy Chapter 17 notation.
 
   Does the backward algorithm as described in Murphy, 17.4.3.
 
@@ -73,20 +83,23 @@ def backward_alg(x, A, B, pi):
   beta.append(np.array([1.0 for j in range(0, len(pi))]))
   
   for t in range(len(x) - 2, -1, -1):
-    psi = np.array([B[i].prob_obs(x[t + 1]) for i in range(0, len(B))])
-    beta.insert(0, normalize(A.dot(np.multiply(psi, beta[0])))[0])
+    beta.insert(0, normalize(A.dot(np.multiply(psi[t + 1], beta[0])))[0])
 
   return np.vstack(beta)
 
 def normalize(u):
   """
-  u is a 1xn np.array
+  u is a np.array
 
   RETURNS: [v,Z] where Z = sum(u)
-  and v is a 1xn np.array such that v[i] = u[i]/Z
+  and v is a np.array with the same shape as v such that v = u/Z
   """
-  Z = sum(u)
-  v = np.array([u[i]/Z for i in range(0,len(u))])
+  Z = np.sum(u)
+  if Z == 0:
+    v = u
+  else:
+    v = u * (1.0/Z)
+  v = np.array(v)
   return [v,Z]
 
 

@@ -26,3 +26,9 @@ class mn_emitter:
     returns the probability of observation x
     """
     return self.p[x]
+  
+  def num_states(self):
+   """
+   returns the number of states, s
+   """
+   return p.shape[0]

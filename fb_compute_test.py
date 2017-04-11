@@ -1,8 +1,15 @@
+"""
+ This file does some basic testing on the forward backward algorithm
+ file. It tests the gamma outputed for two simple cases that can be
+ worked out by hand. It also tests xi[0] for both cases against
+ what scratch work suggests it should be. 
+"""
 import numpy as np
 import fb_compute as fb
 from multinoulli_emitter import mn_emitter as mn
 
-def umbrella_example():
+
+def umbrella_example(eps):
   """
   Umbrella example from wikipedia
   """
@@ -10,12 +17,19 @@ def umbrella_example():
   A = np.array([[0.7,0.3],[0.3,0.7]])
   B =[mn([0.9,0.1]), mn([0.2,0.8])]
   pi = np.array([0.5,0.5])
-  gamma = fb.fb_main(x, A, B, pi)
+  [gamma, xi] = fb.fb_main(x, A, B, pi)
   gamma_correct = np.array([[0.8673,0.1327],[0.82,.18],
     [0.31,0.70],[0.82,0.18],[0.87,0.13]])
-  return check_gamma(gamma, gamma_correct, .1)
+  xi_correct = np.array([[.75,.12],[.07,.06]])
+  gamma_score = check_gamma(gamma, gamma_correct, eps)
+  xi_score = check_gamma(xi[0], xi_correct, eps)
+  if not gamma_score:
+    print("    gamma computation failed")
+  if not xi_score:
+    print("    xi computation failed")
+  return gamma_score and xi_score
 
-def easy_case():
+def easy_case(eps):
   """
     When K = 2, the transition matrix is 0.5 everywhere,
     and state 0 emits only 0 and state 1 emits only 1s,
@@ -31,10 +45,17 @@ def easy_case():
   B = [mn(np.array([1.0, 0.0])), mn(np.array([0.0, 1.0]))]
   A = np.array([[0.5,0.5],[0.5,0.5]])
   pi = [0.5,0.5]
-  gamma = fb.fb_main(x, A, B, pi)
-  gamma_correct = np.array([[1.0,0.0] for j in range(0,T)] 
+  [gamma, xi] = fb.fb_main(x, A, B, pi)
+  gamma_correct = np.array([[1.0,0.0] for j in range(0,T)]
     + [[0.0,1.0] for j in range(0,T)])
-  return check_gamma(gamma, gamma_correct, .1)
+  xi_correct = np.array([[1,0],[0,0]])
+  gamma_score = check_gamma(gamma, gamma_correct, eps)
+  xi_score = check_gamma(xi[0], xi_correct, eps)
+  if not gamma_score:
+    print("    gamma computation failed")
+  if not xi_score:
+    print("    xi computation failed")
+  return gamma_score and xi_score
 
 def check_gamma(gamma, gamma_correct, eps):
   """
@@ -51,9 +72,11 @@ def check_gamma(gamma, gamma_correct, eps):
         return False
   return True
 
-print("Running forward backwards alg tests...")
-easy_result = int(easy_case())
-umbrella_result = int(umbrella_example())
+eps = 0.1
+print("Running forward backwards alg tests " + 
+      "with error tolerance = " + str(eps) + "...")
+easy_result = int(easy_case(eps))
+umbrella_result = int(umbrella_example(eps))
 correct = easy_result + umbrella_result
 print("  easy case: " + str(easy_result) + "/1")
 print("  umbrella case: " + str(umbrella_result) + "/1")
