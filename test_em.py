@@ -34,8 +34,8 @@ def gen_trans(state, t_biased, t_fair):
 p = 0.9 
 t_biased = 0.5
 t_fair = 0.1
-num_steps = 10
-N = 100
+num_steps = 500
+N = 1
 x = [simulate_simple_HMM(p, t_biased, t_fair, num_steps) 
       for i in xrange(0,N)]
 

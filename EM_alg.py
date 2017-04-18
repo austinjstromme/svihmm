@@ -28,13 +28,9 @@ def EM_main(x, A, B, pi):
   A_expect = [[trans_count(xi_data, j, k) for k in xrange(0,K)] 
                 for j in xrange(0,K)]
   B_expect = [[obs_count(x, gamma_data, j, l)/state_count(gamma_data, j)
-                for l in range(0,s)] for j in xrange(0,K)]
+               for l in range(0,s)] for j in xrange(0,K)]
 
-  #print("find pi_expect = " + str(pi_expect))
-  #print("find A_expect = " + str(A_expect))
-  #print("find B_expect = " + str(B_expect))
-
-  #in -place update everybody now
+  #in-place update everybody now
   for k in range(0, K):
     pi[k] = pi_expect[k]
 
