@@ -1,5 +1,5 @@
 from Exponential import Exponential
-from numpy import numpy.random as nprand
+from numpy import random as nprand
 
 class Multinoulli(Exponential):
 
@@ -26,7 +26,11 @@ class Multinoulli(Exponential):
     """
     Generates a single sample.
     """
-    return nprand.multinomial(1, self.params)
+    gen = nprand.multinomial(1, self.params)
+    for l in range(0, self.L):
+      if gen[l] == 1:
+         return l
+    return -1
 
   def update_params(self, x, gamma_data, k):
     """
@@ -83,5 +87,8 @@ class Multinoulli(Exponential):
     Returns:
       p(x)
     """
-  return params[x]
+    return self.params[x]
+
+  def __str__(self):
+    return str(self.params)
     

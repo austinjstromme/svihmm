@@ -1,57 +1,51 @@
 import numpy as np
-import EM_alg as em
-from multinoulli_emitter import mn_emitter as mne
+from HMM import HMM
+from Multinoulli import Multinoulli
+import matplotlib.pyplot as plt
 
-
-def simulate_simple_HMM(p, t_biased, t_fair, num_steps):
+def biased_coins_HMM(p, q, t_1, t_2):
   """
-  This method returns a list of num_steps observations
-  from a simulated 2 state HMM, where state 1 is a fair coin
-  and state 2 is a biased coin with p(Heads | biased) = p and
-  the probability of moving from fair to baised is t_biased
-  and the probability of moving from biased to fair is t_fair
+  This method returns a 2 state HMM, where state 1 is a p-biased coin,
+  state 2 is a q-biased coin, the probability of staying in state
+  1 is t_1, and the probability of staying in state 2 is t_2.
+  The initial distribution pi is uniform.
   """
-  state = np.random.binomial(1,0.5)
-  obs = [gen_obs(state, p)]
-  for t in range(1, num_steps):
-    state = gen_trans(state, t_biased, t_fair)
-    obs.append(gen_obs(state, p))
-  return obs
-
-def gen_obs(state, p):
-  if state == 0:
-    return np.random.binomial(1, 0.5)
-  else:
-    return np.random.binomial(1, p)
-
-def gen_trans(state, t_biased, t_fair):
-  if state == 0:
-    return np.random.binomial(1, t_biased)
-  else:
-    return 1 - np.random.binomial(1, t_fair)
+  K = 2
+  A = np.array([[t_1, 1. - t_1], [1. - t_2, t_2]])
+  pi = np.array([.5, .5])
+  D = [Multinoulli([p, 1. - p]), Multinoulli([q, 1. - q])]
+  return HMM(K, A, pi, D)
 
 
 p = 0.9 
-t_biased = 0.5
-t_fair = 0.1
-num_steps = 500
-N = 1
-x = [simulate_simple_HMM(p, t_biased, t_fair, num_steps) 
-      for i in xrange(0,N)]
+q = 0.1
+t_1 = 0.05
+t_2 = 0.8
+M_true = biased_coins_HMM(p, q, t_1, t_2)
+num_steps = 100 # controls length of observation sequences
+N = 1 # number of observation sequences
 
-print("first simulation gives " + str(x[0]))
+# generate observation seqeunces
+x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
-#initialize everybody with simple guesses
-A = np.array([[0.4,0.6],[0.3,0.7]])
-B = [mne(np.array([0.5,0.5])) for j in xrange(0,2)]
-pi = np.array([0.5 for i in xrange(0,2)])
+# now initialize the model we will be learning to uniform 
+  # everything:
+M_learner = biased_coins_HMM(.4, .6, .5, .5)
+print(" at first, M_learner = " + str(M_learner))
 
-num_iter_em = 100
+em_steps = 50
+train_likelihood = []
+for j in range(0, em_steps):
+  M_learner.EM_step(x)
+  neg_log_like = -M_learner.log_likelihood(x)
+  train_likelihood.append(neg_log_like)
 
-for j in range(0, num_iter_em):
-  em.EM_main(x, A, B, pi)
+print(" we estimate M = " + str(M_learner))
 
-print("A = " + str(A))
-for j in range(0,2):
-  print("B[" + str(j) + "] = " + str(B[j].get_params()))
-print("pi = " + str(pi))
+plt.plot(train_likelihood)
+plt.show()
+
+
+
+
+

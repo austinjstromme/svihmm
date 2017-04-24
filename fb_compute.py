@@ -11,11 +11,12 @@ def fb_main(x, A, B, pi):
   Computes the smooth posterior marginals gamma[t][j]
    using the forwards backwards algorithm.
 
-  RETURNS: [gamma, xi], where gamma is a TxK np.array 
+  RETURNS: [gamma, xi, Z_vals], where gamma is a TxK np.array 
    where gamma[t][j] is the probability z_t = j conditioned 
    on the observations x. xi is a (T - 1)xKxK np.array of the
    two slice marginals, i.e. xi[t][i][j] = 
-   p(z_t = i, z_{t + 1} = j | x)
+   p(z_t = i, z_{t + 1} = j | x). Z_vals is a Tx1 np.array
+   where Z_vals[j] = p(x_j | x_{1: j - 1})
   """
   #TODO: fix this
   #psi = np.array([[B[i].prob_obs(x[t]) for i in range(0,len(B))]
@@ -23,18 +24,35 @@ def fb_main(x, A, B, pi):
   psi = [[B[k].mass(x[t]) for k in xrange(0, len(B))]
     for t in xrange(0, len(x))]
 
-  alpha = forward_alg(x, A, pi, psi)[0]
-  beta = backward_alg(x, A, pi, psi)
-  print("beta = " + str(beta))
+  #print("psi = " + str(psi))
+
+  [alpha, Z_vals] = forward_alg(x, A, pi, psi)
+  beta = backward_alg(x, A, pi, psi, Z_vals)
+
+  #print("alpha = " + str(alpha))
+  #print("beta = " + str(beta))
 
   xi = [normalize(np.multiply(A, np.outer(alpha[t],
          np.multiply(psi[t + 1], beta[t + 1]))))[0]
          for t in range(0, len(x) - 1)]
 
   gamma = np.array([normalize(np.multiply(alpha[t], beta[t]))[0] 
-    for t in range(0,len(x))])
+    for t in range(0, len(x))])
 
-  return [gamma, xi]
+
+
+  return [gamma, xi, Z_vals]
+
+def normalize_xi(xi):
+  """
+  Normalizes xi; this special normalization is necessary because
+  xi[i][j] = xi[j][i] and sum_{i <= j} xi[i][j] = 1
+  """
+  norm = 0.
+  for i in range(0, xi.shape[0]):
+    for j in range(i, xi.shape[1]):
+      norm += xi[i][j]
+  return xi*(1./norm)
   
 def forward_alg(x, A, pi, psi):
   """
@@ -64,15 +82,18 @@ def forward_alg(x, A, pi, psi):
   
   return [np.vstack(alpha), np.array(Z)]
 
-def backward_alg(x, A, pi, psi):
+def backward_alg(x, A, pi, psi, Z_vals):
   """
-  x is a Tx1 np.array of observations
-  A is a KxK np.array of transition probabilities
-  pi is a Kx1 np.array of starting probabilites
-  psi is a TxK np.array of local evidences, i.e. psi[t][i]
-    is p(x[t] | z_i) in Murphy Chapter 17 notation.
-
   Does the backward algorithm as described in Murphy, 17.4.3.
+
+  Params:
+    x: Tx1 np.array of observations
+    A: KxK np.array of transition probabilities
+    pi: Kx1 np.array of starting probabilites
+    psi: TxK np.array of local evidences, i.e. psi[t][i]
+      is p(x[t] | z_i) in Murphy Chapter 17 notation.
+    Z_vals: Tx1 np.array of Z values, where Z_vals[t] is the
+      norm of alpha[t] before it was normalized
 
   RETURNS: beta where beta is a TxK np.array 
     such that beta[t][j] is the conditional
@@ -84,7 +105,8 @@ def backward_alg(x, A, pi, psi):
   beta.append(np.array([1.0 for j in range(0, len(pi))]))
   
   for t in range(len(x) - 2, -1, -1):
-    beta.insert(0, A.dot(np.multiply(psi[t + 1], beta[0]))[0])
+    beta.insert(0, A.dot(np.multiply(psi[t + 1],
+      beta[0]*Z_vals[t + 1]))*(1./Z_vals[t + 1]))
 
   return np.vstack(beta)
 
@@ -102,6 +124,3 @@ def normalize(u):
     v = u * (1.0/Z)
   v = np.array(v)
   return [v,Z]
-
-
-

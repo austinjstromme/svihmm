@@ -6,18 +6,18 @@
 """
 import numpy as np
 import fb_compute as fb
-from multinoulli_emitter import mn_emitter as mn
-
+from Multinoulli import Multinoulli as mn
 
 def umbrella_example(eps):
   """
   Umbrella example from wikipedia
   """
-  x = np.array([0,0,1,0,0])
-  A = np.array([[0.7,0.3],[0.3,0.7]])
-  B =[mn([0.9,0.1]), mn([0.2,0.8])]
+
+  x = np.array([0, 0, 1, 0, 0])
+  A = np.array([[0.7,0.3], [0.3,0.7]])
+  D = [mn([0.9, 0.1]), mn([0.2, 0.8])]
   pi = np.array([0.5,0.5])
-  [gamma, xi] = fb.fb_main(x, A, B, pi)
+  [gamma, xi, Z_vals] = fb.fb_main(x, A, D, pi)
   gamma_correct = np.array([[0.8673,0.1327],[0.82,.18],
     [0.31,0.70],[0.82,0.18],[0.87,0.13]])
   xi_correct = np.array([[.75,.12],[.07,.06]])
@@ -45,12 +45,18 @@ def easy_case(eps):
   B = [mn(np.array([1.0, 0.0])), mn(np.array([0.0, 1.0]))]
   A = np.array([[0.5,0.5],[0.5,0.5]])
   pi = [0.5,0.5]
-  [gamma, xi] = fb.fb_main(x, A, B, pi)
+  [gamma, xi, Z_vals] = fb.fb_main(x, A, B, pi)
   gamma_correct = np.array([[1.0,0.0] for j in range(0,T)]
     + [[0.0,1.0] for j in range(0,T)])
-  xi_correct = np.array([[1,0],[0,0]])
+  xi_correct = ([np.array([[1,0], [0,0]]) for j
+                in range(0, T - 1)] + 
+                [np.array([[0,1], [0,0]])] +
+                [np.array([[0,0], [0,1]]) for j in range(0, T - 1)])
   gamma_score = check_gamma(gamma, gamma_correct, eps)
-  xi_score = check_gamma(xi[0], xi_correct, eps)
+  xi_score = True
+  for j in range(0, len(xi)):
+    xi_score = xi_score and check_gamma(xi[j], xi_correct[j], eps)
+
   if not gamma_score:
     print("    gamma computation failed")
   if not xi_score:
