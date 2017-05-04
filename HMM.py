@@ -2,37 +2,41 @@ import numpy as np
 import fb_compute as fb
 from Multinoulli import Multinoulli
 import math
+import scipy as sc
 
 class HMM(object):
   """
   A HMM is an abstraction of a Hidden Markov Model. In this abstraction
   each HMM has several parameters associated to it, including the number
   of hidden states K, the transition matrix A from hidden states to hidden
-  states, an initial distribution pi, and a list of distributions D.
+  states, an initial distribution pi, and a list of distributions D. Note
+  that all probabilities are in the log domain.
   """
 
   def __init__(self, K, A, pi, D):
     """
     Initializes a Hidden Markov Model (HMM) with K hidden states.
 
-    K: an positive integer givin the number of hidden states.
-    A: a KxK np.array of transition probabilities between states.
-    pi: a 1xK np.array of start probabilities.
+    K: a positive integer givin the number of hidden states.
+    A: a KxK np.array of transition probabilities between states. NOT
+      in log domain.
+    pi: a 1xK np.array of start probabilities. NOT in log domain.
     D: a list of K Distributions (see Distribution.py), one for
       each state
     """
     #TODO: add checks that the arguments are of the right form
     self.K = K
-    self.A = A
-    self.pi = pi
+    self.A = np.log(A)
+    self.pi = np.log(pi)
     self.D = D
 
   def get_params(self):
     """
     Returns the parameters K, A, pi, and D,
-    in a list: [K, A, pi, D].
+    in a list: [K, A, pi, D]; converts probabilities
+    back from log domain.
     """
-    return [self.K, self.A, self.pi, self.D]
+    return [self.K, np.exp(self.A), np.exp(self.pi), self.D]
 
   def compare(self, M):
     """
@@ -40,6 +44,21 @@ class HMM(object):
     and another HMM M; symmetric operation.
     """
     #TODO: implement
+
+  def M_step(self, S):
+    """
+    Does a single M step.
+
+    Args:
+      S: a States object which points to this HMM.
+
+    Effects:
+      self: updates this HMM's parameter values
+    """
+    self.update_start(S.gamma)
+    self.update_trans(S.xi)
+    for k in range(0, self.K):
+      self.D[k].update_params(S.data, S.gamma, k)
 
   def EM_step(self, x):
     """
@@ -65,28 +84,21 @@ class HMM(object):
     for k in range(0, self.K):
       self.D[k].update_params(x, gamma_data, k)
 
-  def log_likelihood(self, x):
-    """
-    Returns the log likelihood of a list of observation sequences x.
-    """
-    res = 0.
-    for i in range(0, len(x)):
-      Z_vals = fb.fb_main(x[i], self.A, self.D, self.pi)[2]
-      for t in range(0, len(x[i])):
-        res += math.log(Z_vals[i])
-    return res
-
   def update_trans(self, xi_data):
     """
     Updates the transition matrix A.
     """
     N = len(xi_data)
-    A_expect = sum([np.sum(xi_data[i], axis=0) for i in range(0, N)])
 
+    A_expect = np.zeros((self.K, self.K))
     for j in range(0, self.K):
-      row_sum = sum(A_expect[j])
       for k in range(0, self.K):
-        self.A[j][k] = A_expect[j][k]/row_sum
+        A_expect[j][k] = sc.misc.logsumexp([[xi_data[n][t][j][k]
+          for t in range(0, len(xi_data[n]))] for n in range(0, N)])
+
+    #normalize and put in
+    for j in range(0, self.K):
+      self.A[j] = lm.norm(A_expect[j])[0]
 
   def trans_count(self, xi):
     """
@@ -98,29 +110,20 @@ class HMM(object):
     #                    for j in xrange(0, K)])
     return np.sum(xi, axis=0)
 
-  def update_start(self, gamma_data):
+  def update_start(self, gamma):
     """
     Updates the start probability vector pi.
     """
     pi_expect = np.zeros(self.K)
     N = len(gamma_data)
-    for i in range(0, N):
-      pi_expect += self.start_count(gamma_data[i])*(1.0/N)
+    for k in range(0, self.K)
+      sum_k = [gamma[t][0][k] for t in range(0, N)]
+      pi_expect[k] = sc.misc.logsumexp(sum_k) - np.log(N)
     self.pi = pi_expect
-
-  def start_count(self, gamma):
-    """
-    Computes the expected initial probability vector.
-    """
-    return np.array([gamma[0][k] for k in xrange(0, self.K)])
 
   def EM(self, x, N):
     """
     Does N steps of EM with observations x.
-
-    Returns:
-      Z: an NxT list of the log probabilities of seeing the tth observation
-        after each update
     """
     for i in range(0, N):
       self.EM_step(x)

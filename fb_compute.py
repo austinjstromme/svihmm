@@ -18,7 +18,6 @@ def fb_main(x, A, B, pi):
    p(z_t = i, z_{t + 1} = j | x). Z_vals is a Tx1 np.array
    where Z_vals[j] = p(x_j | x_{1: j - 1})
   """
-  #TODO: fix this
   #psi = np.array([[B[i].prob_obs(x[t]) for i in range(0,len(B))]
   #        for t in range(0, len(x))])
   psi = [[B[k].mass(x[t]) for k in xrange(0, len(B))]
@@ -39,21 +38,8 @@ def fb_main(x, A, B, pi):
   gamma = np.array([normalize(np.multiply(alpha[t], beta[t]))[0] 
     for t in range(0, len(x))])
 
-
-
   return [gamma, xi, Z_vals]
 
-def normalize_xi(xi):
-  """
-  Normalizes xi; this special normalization is necessary because
-  xi[i][j] = xi[j][i] and sum_{i <= j} xi[i][j] = 1
-  """
-  norm = 0.
-  for i in range(0, xi.shape[0]):
-    for j in range(i, xi.shape[1]):
-      norm += xi[i][j]
-  return xi*(1./norm)
-  
 def forward_alg(x, A, pi, psi):
   """
   x is a Tx1 list of observations
