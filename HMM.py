@@ -3,6 +3,7 @@ import fb_compute as fb
 from Multinoulli import Multinoulli
 import math
 import scipy as sc
+import LogMatrixUtil as lm
 
 class HMM(object):
   """
@@ -58,7 +59,7 @@ class HMM(object):
     self.update_start(S.gamma)
     self.update_trans(S.xi)
     for k in range(0, self.K):
-      self.D[k].update_params(S.data, S.gamma, k)
+      self.D[k].update_params(S.data, np.exp(S.gamma), k)
 
   def EM_step(self, x):
     """
@@ -115,8 +116,8 @@ class HMM(object):
     Updates the start probability vector pi.
     """
     pi_expect = np.zeros(self.K)
-    N = len(gamma_data)
-    for k in range(0, self.K)
+    N = len(gamma)
+    for k in range(0, self.K):
       sum_k = [gamma[t][0][k] for t in range(0, N)]
       pi_expect[k] = sc.misc.logsumexp(sum_k) - np.log(N)
     self.pi = pi_expect
@@ -132,11 +133,11 @@ class HMM(object):
     """
     Generate a list of n observations.
     """
-    m = Multinoulli(self.pi)
+    m = Multinoulli(np.exp(self.pi))
     curr = m.gen_sample()
     obs = [self.D[curr].gen_sample()]
     for i in range(1, n):
-      m = Multinoulli(self.A[curr])
+      m = Multinoulli(np.exp(self.A[curr]))
       curr = m.gen_sample()
       obs.append(self.D[curr].gen_sample())
     return obs

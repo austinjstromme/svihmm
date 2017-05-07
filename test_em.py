@@ -2,6 +2,7 @@ import numpy as np
 from HMM import HMM
 from Multinoulli import Multinoulli
 import matplotlib.pyplot as plt
+from States import States
 
 def biased_coins_HMM(p, q, t_1, t_2):
   """
@@ -22,8 +23,8 @@ q = 0.1
 t_1 = 0.05
 t_2 = 0.8
 M_true = biased_coins_HMM(p, q, t_1, t_2)
-num_steps = 100 # controls length of observation sequences
-N = 100 # number of observation sequences
+num_steps = 100000 # controls length of observation sequences
+N = 2 # number of observation sequences
 
 # generate observation seqeunces
 x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
@@ -31,21 +32,19 @@ x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 # now initialize the model we will be learning to uniform 
   # everything:
 M_learner = biased_coins_HMM(.4, .6, .5, .5)
+states = States(M_learner, x)
 #print(" at first, M_learner = " + str(M_learner))
 
 em_steps = 10
 train_likelihood = []
 for j in range(0, em_steps):
-  M_learner.EM_step(x)
-  neg_log_like = -M_learner.log_likelihood(x)
+  states.e_step()
+  M_learner.M_step(states)
+  neg_log_like = -states.LL()
   train_likelihood.append(neg_log_like)
 
 plt.plot(train_likelihood)
 plt.title("NLL vs steps, EM for HMM")
 #plt.savefig("demo")
 plt.show()
-
-
-
-
 

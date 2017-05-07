@@ -7,17 +7,23 @@
 import numpy as np
 import fb_compute as fb
 from Multinoulli import Multinoulli as mn
+from HMM import HMM
+from States import States
 
 def umbrella_example(eps):
   """
   Umbrella example from wikipedia
   """
 
-  x = np.array([0, 0, 1, 0, 0])
+  x = [[0, 0, 1, 0, 0]]
   A = np.array([[0.7,0.3], [0.3,0.7]])
   D = [mn([0.9, 0.1]), mn([0.2, 0.8])]
   pi = np.array([0.5,0.5])
-  [gamma, xi, Z_vals] = fb.fb_main(x, A, D, pi)
+  M = HMM(2, A, pi, D)
+  S = States(M, x)
+  S.e_step()
+  gamma = np.exp(np.array(S.gamma[0]))
+  xi = np.exp(np.array(S.xi[0]))
   gamma_correct = np.array([[0.8673,0.1327],[0.82,.18],
     [0.31,0.70],[0.82,0.18],[0.87,0.13]])
   xi_correct = np.array([[.75,.12],[.07,.06]])
@@ -41,11 +47,15 @@ def easy_case(eps):
   T = 10
 
   #initialize estimates
-  x = np.array([0 for j in range(0,T)] + [1 for j in range(0,T)])
-  B = [mn(np.array([1.0, 0.0])), mn(np.array([0.0, 1.0]))]
+  x = [[0 for j in range(0,T)] + [1 for j in range(0,T)]]
+  B = [mn(np.array([.999, 0.001])), mn(np.array([0.001, .999]))]
   A = np.array([[0.5,0.5],[0.5,0.5]])
   pi = [0.5,0.5]
-  [gamma, xi, Z_vals] = fb.fb_main(x, A, B, pi)
+  M = HMM(2, A, pi, B)
+  S = States(M, x)
+  S.e_step()
+  gamma = np.exp(np.array(S.gamma[0]))
+  xi = np.exp(np.array(S.xi[0]))
   gamma_correct = np.array([[1.0,0.0] for j in range(0,T)]
     + [[0.0,1.0] for j in range(0,T)])
   xi_correct = ([np.array([[1,0], [0,0]]) for j

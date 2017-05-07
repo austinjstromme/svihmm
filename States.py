@@ -1,11 +1,12 @@
 import numpy as np
 import LogMatrixUtil as lm
+import math
 
 class States(object):
   """
   A States object represents the states of a given HMM, both the hidden
   and observed. Each States object supports adding data, subsequent to
-  which it updates it's latent estimates.
+  which it updates its latent estimates.
 
   Fields:
     M: the HMM this States object is associated with
@@ -39,24 +40,24 @@ class States(object):
                   for n in range(0, N)]
     self.xi = [[np.ones((K,K)) for t in range(0, len(x[n]))]
                   for n in range(0, N)]
-    self.update()
+    self.e_step()
 
   def e_step(self):
     """
     Runs forwards-backwards to compute gamma and xi given the current data.
     """
     for i in range(0, len(self.data)):
-      self.e_step(i)
+      self.e_step_row(i)
 
-  def e_step(self, i):
+  def e_step_row(self, i):
     """
     Updates gamma and xi for the ith data point.
     """
-    x = data[i]
+    x = self.data[i]
 
-    psi = [[math.log(self.M.D[k].mass(x[t]))
-            for k in xrange(0, len(self.M.D))]
-            for t in xrange(0, len(x))]
+    psi = [[np.log(self.M.D[k].mass(x[t]))
+            for k in range(0, len(self.M.D))]
+            for t in range(0, len(x))]
 
     [alpha, Z] = self.forward_alg(x, psi)
     beta = self.backward_alg(x, psi)
@@ -84,7 +85,7 @@ class States(object):
     beta = [np.zeros(self.M.K)]
     for t in range(len(x) - 2, -1, -1):
       res = lm.dot(self.M.A, lm.mult(psi[t + 1], beta[0]))
-      beta.insert(0, res[0])
+      beta.insert(0, res)
     return beta
 
   def forward_alg(self, x, psi):
@@ -99,7 +100,7 @@ class States(object):
               alpha[t - 1])))
       alpha.append(res[0])
       Z.append(res[1])
-   return [alpha, Z]
+    return [alpha, Z]
 
   def LL(self):
     """
@@ -108,7 +109,7 @@ class States(object):
     res = 0.
     for n in range(0, len(self.data)):
       x = self.data[n]
-      psi = [[math.log(self.M.D[k].mass(x[t]))
+      psi = [[np.log(self.M.D[k].mass(x[t]))
               for k in xrange(0, len(self.M.D))]
               for t in xrange(0, len(x))]
       Z = self.forward_alg(x, psi)[1]

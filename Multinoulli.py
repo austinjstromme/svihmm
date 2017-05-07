@@ -16,8 +16,8 @@ class Multinoulli(Exponential):
       Initializes a Multinoulli with the given parameters.
     """
     if(sum(params) != 1.0 or min(params) < 0.0):
-      print("please enter valid probabilties; intialization failed")
-      return None
+      raise ValueError("please enter valid probabilties; Multinoulli"
+              + " initialization failed")
 
     self.params = params
     self.L = len(params)
@@ -60,7 +60,7 @@ class Multinoulli(Exponential):
     res = 0.0
     for i in range(0,N):
       res += sum([gamma_data[i][t][j] for t in 
-                xrange(0,gamma_data[i].shape[0])])
+                xrange(0,len(gamma_data[i]))])
     return res
 
   def obs_count(self, x, gamma_data, j, l):

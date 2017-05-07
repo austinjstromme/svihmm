@@ -6,7 +6,7 @@ easily compute (A * B)' or (A \odot B)'. These operations are both
 implemented below.
 """
 import numpy as np
-import scipy as sc
+from scipy.misc import logsumexp
 
 def mult(a, b):
   """
@@ -33,7 +33,7 @@ def norm(a):
   """
   Returns [b, Z] such that b = a - log(Z) and Z = exp(logsumexp(a))
   """
-  Z = np.exp(sc.misc.logsumexp(a))
+  Z = np.exp(logsumexp(a))
   b = a - np.log(Z)
   return [b, Z]
 
@@ -44,4 +44,4 @@ def outer(a, b):
   res = np.zeros((a.shape[0], b.shape[0]))
   for i in range(0, a.shape[0]):
     res[i] = b + a[i]
-  return result
+  return res
