@@ -33,9 +33,9 @@ def norm(a):
   """
   Returns [b, Z] such that b = a - log(Z) and Z = exp(logsumexp(a))
   """
-  Z = np.exp(logsumexp(a))
-  b = a - np.log(Z)
-  return [b, Z]
+  Z = logsumexp(a)
+  b = a - Z
+  return [b, np.exp(Z)]
 
 def outer(a, b):
   """

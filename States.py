@@ -1,6 +1,8 @@
 import numpy as np
+import scipy as sc
 import LogMatrixUtil as lm
 import math
+import random
 
 class States(object):
   """
@@ -44,10 +46,50 @@ class States(object):
 
   def e_step(self):
     """
-    Runs forwards-backwards to compute gamma and xi given the current data.
+    Runs forwards-backwards to compute gamma and xi with the given M.
     """
     for i in range(0, len(self.data)):
       self.e_step_row(i)
+
+  def e_step_sub_chain(self, a, b, buf):
+    """
+    Runs forwards-backwards to compute gamma and xi given the current data,
+    but does this on the subchain (a,b) using a buffer of
+    size buf.
+    """
+    for i in range(0, len(self.data)):
+      if b + buf >= len(self.data[i]) or a < 0:
+        raise ValueError("faulty parameters for local update interval")
+        #no point in doing anything fancy; just update them all
+        self.e_step_row(i)
+      # run FB on this subchain
+      self.e_step_row_sub_chain(i, a, b, buf)
+
+  def e_step_row_sub_chain(self, i, a, b, buf):
+    """
+    Updates gamma and xi for t in [a,b] for the ith data point by
+    performing a forward-backward pass on [a-buf, b + buf]
+    """
+    x = self.data[i][(a - buf) : (b + buf)]
+
+    psi = [[np.log(self.M.D[k].mass(x[t]))
+            for k in range(0, len(self.M.D))]
+            for t in range(0, len(x))]
+
+    [alpha, Z] = self.forward_alg(x, psi)
+    beta = self.backward_alg(x, psi)
+
+    #gamma updates
+    for t in range(buf, len(x) - buf):
+      res = lm.norm(lm.mult(alpha[t], beta[t]))[0]
+      self.gamma[i][t + a - buf] = res
+
+    #xi updates
+    xi = []
+    for t in range(buf, len(x) - buf - 1):
+      res = lm.norm(lm.mult(self.M.A, lm.outer(alpha[t],
+        lm.mult(psi[t + 1], beta[t + 1]))))[0]
+      self.xi[i][t + a - buf] = res
 
   def e_step_row(self, i):
     """
@@ -101,6 +143,51 @@ class States(object):
       alpha.append(res[0])
       Z.append(res[1])
     return [alpha, Z]
+
+  def get_local_trans(self, a, b):
+    """
+    Returns KxK matrix whose entries are
+      log(\sum_{t = a}^b exp(xi[0][t][i][j]))
+    """
+    K = self.M.K
+    N = len(self.xi)
+
+    res = np.zeros((K,K))
+    for j in range(0, K):
+      for k in range(0, K):
+        res[j][k] = sc.misc.logsumexp([self.xi[0][t][j][k]
+          for t in range(a, b)])
+
+    return res
+
+  def get_start(self):
+    """
+    Returns vector who entries are
+      log( \sum_{n = 1}^N exp(gamma[n][0][k]))
+    """
+    N = len(self.gamma)
+    K = self.M.K
+    res = np.zeros(K)
+    for k in range(0, K):
+      sum_k = [self.gamma[n][0][k] for n in range(0, N)]
+      res[k] = sc.misc.logsumexp(sum_k)
+    return res
+
+  def get_trans(self):
+    """
+    Returns KxK matrix whose entries are
+      log(\sum_{n = 1}^N \sum_{t = 2}^T_n exp(xi[n][t][i][j]))
+    """
+    K = self.M.K
+    N = len(self.xi)
+
+    res = np.zeros((K,K))
+    for j in range(0, K):
+      for k in range(0, K):
+        res[j][k] = sc.misc.logsumexp([[self.xi[n][t][j][k]
+          for t in range(0, len(self.xi[n]))] for n in range(0, N)])
+
+    return res
 
   def LL(self):
     """

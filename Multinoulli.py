@@ -1,9 +1,20 @@
 from Exponential import Exponential
+from Dirichlet import Dirichlet
 from numpy import random as nprand
+from scipy.misc import logsumexp
+import LogMatrixUtil as lm
+import numpy as np
 
 class Multinoulli(Exponential):
+  """
+  Multinoulli is a class representing multinoulli distributions.
+ 
+  Fields:
+    params: a list of L probabilities
+    prior: a Dirichlet distribution governing the prior on this Multinoulli
+  """
 
-  def __init__(self, params):
+  def __init__(self, params, prior=None):
     """
     Initializes a Multinoulli distribution.
 
@@ -11,16 +22,24 @@ class Multinoulli(Exponential):
       params: a list of probabiltilies, where
         params[l] is p_l. If L is the length of params
         then assumes that this Multionoulli has L symbols.
+      prior: a distribution (see Distribution.py) that gives
+        the prior for this distribution. Optional.
 
     Effects:
-      Initializes a Multinoulli with the given parameters.
+      self: Initializes with the given parameters. If a prior
+        is not specified, defaults to a Dir(alpha) prior where alpha
+        is all 1's
     """
-    if(sum(params) != 1.0 or min(params) < 0.0):
+    if (np.min(params) < 0.0):
       raise ValueError("please enter valid probabilties; Multinoulli"
               + " initialization failed")
 
-    self.params = params
-    self.L = len(params)
+    self.params = np.array(params)
+    self.L = self.params.shape[0]
+    if (prior is None):
+      self.prior = Dirichlet(2*np.ones(self.L))
+    else:
+      self.prior = prior
 
   def gen_sample(self):
     """
@@ -30,7 +49,80 @@ class Multinoulli(Exponential):
     for l in range(0, self.L):
       if gen[l] == 1:
          return l
-    return -1
+    # if it makes it to here, something has gone very wrong
+    raise ValueError("Multinoulli not initialized properly; can't"
+           + " generate samples")
+
+  def get_natural(self):
+    """
+    Returns the natural parameters of this Multinoulli.
+    """
+    return np.array([np.log(self.params[k]/self.params[self.L - 1])
+        for k in range(0, self.L)])
+    
+  def set_natural(self, w):
+    """
+    Updates the parameters so the natural parameters become w
+
+    Args:
+      w: np.array of length L of new natural parameters
+    """
+    self.params = np.exp(w)
+    self.params = (self.params/np.sum(self.params))
+
+  def natural_update(self, delta_w, eta):
+    """
+    Updates the natural parameters of this Dirichlet using delta_w. 
+
+    Args:
+      delta_w: a np.array of size L
+      eta: weight of the update
+
+    Effects:
+      self: the natural parameters w become (1 - eta)*w + eta*delta_w
+    """
+    w = self.get_natural()
+    self.set_natural((1. - eta)*w + eta*delta_w)
+
+  def VB_update(S, rho=1.):
+    """
+    Performs a VB update using the given states object.
+
+    Args:
+      S: States object
+      rho: weight to give to new natural parameters on the prior;
+        defaults to 1 (i.e. entirely new natural params)
+
+    Effects:
+      the natural parameters w of the prior on this distribution
+        become (1 - rho)*w + rho*(
+    """
+
+
+  def bayes_update(self, x, gamma_data, k, rho):
+    """
+    Updates the parameters as in the SVIHMM paper.
+
+    params:
+      x: a list of N observation sequences
+      gamma_data: a list of the smoothed posterior marginals
+        for each observation sequence. Thus gamma_data[i][t][k]
+        is the probabiltiy that the ith observation sequence at
+        time t was in state k. IN LOG DOMAIN.
+      k: the state this distribution corresponds to
+      rho: the step_size
+      
+    """
+    #TODO: implement
+    state_count = self.state_count(gamma_data, k)
+    grad = np.zeros(self.L)
+    for l in range(0, self.L):
+      self.params[l] = (np.exp(self.obs_count(x, gamma_data, k, l))
+                      /np.exp(state_count))
+      grad[l] = logsumexp([self.obs_count(x, gamma_data, k, l),
+                self.prior[l] - 1])
+    self.params = (1. - rho)*self.params + rho*np.exp(lm.norm(grad)[0])
+    
 
   def update_params(self, x, gamma_data, k):
     """
@@ -41,7 +133,7 @@ class Multinoulli(Exponential):
       gamma_data: a list of the smoothed posterior marginals
         for each observation sequence. Thus gamma_data[i][t][k]
         is the probabiltiy that the ith observation sequence at
-        time t was in state k.
+        time t was in state k. IN LOG DOMAIN.
       k: the state this distribution corresponds to
 
     Effects:
@@ -49,33 +141,49 @@ class Multinoulli(Exponential):
     """
     state_count = self.state_count(gamma_data, k)
     for l in range(0, self.L):
-      self.params[l] = self.obs_count(x, gamma_data, k, l)/state_count
-    
+      self.params[l] = (np.exp(self.obs_count(x, gamma_data, k, l))
+                      /np.exp(state_count))
+
   def state_count(self, gamma_data, j):
     """
-    returns the expected number of times an observation
+    returns the log of expected number of times an observation
     was in state j
     """
     N = len(gamma_data)
-    res = 0.0
+    res = []
     for i in range(0,N):
-      res += sum([gamma_data[i][t][j] for t in 
-                xrange(0,len(gamma_data[i]))])
-    return res
+      res += [gamma_data[i][t][j] for t in 
+                xrange(0,len(gamma_data[i]))]
+    return logsumexp(res)
+
+  def local_obs_count(self, x, gamma_data, j, l, a, b):
+    """
+    returns log of the expected number of times an observation
+    was in state j and emitted an l; a <= t <= b
+    """
+    res = []
+    for i in range(0,1):
+      for t in range(a, b):
+        if x[i][t] == l:
+          res.append(gamma_data[i][t][j])
+    if len(res) == 0:
+      res.append(np.log(0.0000001))
+    return logsumexp(res)
 
   def obs_count(self, x, gamma_data, j, l):
     """
-    returns the expected number of times an observation
+    returns log of the expected number of times an observation
     was in state j and emitted an l
     """
     N = len(x)
-    res = 0.0
+    res = []
     for i in range(0,N):
       for t in range(0,len(x[i])):
         if x[i][t] == l:
-          res += gamma_data[i][t][j]
-    return res
-
+          res.append(gamma_data[i][t][j])
+    if len(res) == 0:
+      res.append(np.log(0.0000001))
+    return logsumexp(res)
 
   def mass(self, x):
     """

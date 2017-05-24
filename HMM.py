@@ -56,10 +56,10 @@ class HMM(object):
     Effects:
       self: updates this HMM's parameter values
     """
-    self.update_start(S.gamma)
-    self.update_trans(S.xi)
+    self.update_start(S)
+    self.update_trans(S)
     for k in range(0, self.K):
-      self.D[k].update_params(S.data, np.exp(S.gamma), k)
+      self.D[k].update_params(S.data, S.gamma, k)
 
   def EM_step(self, x):
     """
@@ -79,48 +79,27 @@ class HMM(object):
       xi_data.append(xi)
 
     # update A and pi
-    self.update_trans(xi_data)
-    self.update_start(gamma_data)
+    self.update_trans(S)
+    self.update_start(S)
     # update the distribution at each hidden state
     for k in range(0, self.K):
       self.D[k].update_params(x, gamma_data, k)
 
-  def update_trans(self, xi_data):
+  def update_trans(self, S):
     """
     Updates the transition matrix A.
     """
-    N = len(xi_data)
-
-    A_expect = np.zeros((self.K, self.K))
-    for j in range(0, self.K):
-      for k in range(0, self.K):
-        A_expect[j][k] = sc.misc.logsumexp([[xi_data[n][t][j][k]
-          for t in range(0, len(xi_data[n]))] for n in range(0, N)])
+    A_expect = S.get_trans()
 
     #normalize and put in
     for j in range(0, self.K):
       self.A[j] = lm.norm(A_expect[j])[0]
 
-  def trans_count(self, xi):
-    """
-    Computes the expected transition matrix, i.e. returns
-      a KxK np.array such that (j,k) is the expected number of
-      transitions from state j to state k.
-    """
-    #return np.array([[sum(xi[:][j][k]) for k in xrange(0,K)] for j
-    #                    for j in xrange(0, K)])
-    return np.sum(xi, axis=0)
-
-  def update_start(self, gamma):
+  def update_start(self, S):
     """
     Updates the start probability vector pi.
     """
-    pi_expect = np.zeros(self.K)
-    N = len(gamma)
-    for k in range(0, self.K):
-      sum_k = [gamma[t][0][k] for t in range(0, N)]
-      pi_expect[k] = sc.misc.logsumexp(sum_k) - np.log(N)
-    self.pi = pi_expect
+    self.pi = S.get_start() - np.log(len(S.gamma))
 
   def EM(self, x, N):
     """
@@ -144,8 +123,8 @@ class HMM(object):
 
   def __str__(self):
     res = "HMM with K = " + str(self.K) + "\n"
-    res += "  A = " + str(self.A) + "\n"
-    res += "  pi = " + str(self.pi) + "\n"
+    res += "  A = " + str(np.exp(self.A)) + "\n"
+    res += "  pi = " + str(np.exp(self.pi)) + "\n"
     res += "  D = "
     for k in range(0, self.K):
       res += str(self.D[k]) + "\n"
