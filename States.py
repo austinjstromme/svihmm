@@ -10,14 +10,14 @@ class States(object):
   and observed. Each States object supports adding data, subsequent to
   which it updates its latent estimates.
 
-  Fields:
+  Attributes:
     M: the HMM this States object is associated with
     data: a list of N observations sequences; data[n] is a list of length T_n
-    gamma: represents log probabilities of posterior marginals
+    gamma: represents log probabilities of posterior marginals;
       gamma[n][t][i] is the log of the probability that the nth observation
       sequence at time t was in state i. gamma is a list of lists of
       np.arrays of shape (K)
-    xi: represents log probabilities of two-slice marginals
+    xi: represents log probabilities of two-slice marginals;
       xi[n][t][i][j] is the log of the probability that the nth observation
       sequence was in latent state i at time t and latent state j at time
       t + 1. Thus xi[n] is a (T_n - 1)xKxK table. xi is a list of lists of
@@ -29,8 +29,9 @@ class States(object):
     Initializes a States object with a given HMM and observation sequence
     (possibly empty) x.
 
-    M: the HMM to which this States object is associated
-    x: a list of N observation seqeunces; x[i] is a list of length T_i
+    Args:
+      M (HMM): the HMM we wnat this States object to be associated with
+      x: a list of N observation seqeunces; x[i] is a list of length T_i
       observations
     """
     self.M = M
@@ -40,9 +41,17 @@ class States(object):
     #initialize
     self.gamma = [[np.ones(K) for t in range(0, len(x[n]))]
                   for n in range(0, N)]
-    self.xi = [[np.ones((K,K)) for t in range(0, len(x[n]))]
+    self.xi = [[np.ones((K,K)) for t in range(0, len(x[n]) - 1)]
                   for n in range(0, N)]
     self.e_step()
+
+  def add_data(self, x):
+    """
+    Adds observation sequences x to the data. DOES NOT do any inference
+    on the new sequences before returning.
+    """
+    for seq in x:
+      self.data.append(seq)
 
   def e_step(self):
     """
@@ -54,7 +63,7 @@ class States(object):
   def e_step_sub_chain(self, a, b, buf):
     """
     Runs forwards-backwards to compute gamma and xi given the current data,
-    but does this on the subchain (a,b) using a buffer of
+    but does this on the subchain [a,b] using a buffer of
     size buf.
     """
     for i in range(0, len(self.data)):
@@ -70,7 +79,7 @@ class States(object):
     Updates gamma and xi for t in [a,b] for the ith data point by
     performing a forward-backward pass on [a-buf, b + buf]
     """
-    x = self.data[i][(a - buf) : (b + buf)]
+    x = self.data[i][(a - buf) : (b + buf + 1)]
 
     psi = [[np.log(self.M.D[k].mass(x[t]))
             for k in range(0, len(self.M.D))]
@@ -95,31 +104,8 @@ class States(object):
     """
     Updates gamma and xi for the ith data point.
     """
-    x = self.data[i]
+    self.e_step_row_sub_chain(i, 0, len(self.data[i]) - 1, 0)
 
-    psi = [[np.log(self.M.D[k].mass(x[t]))
-            for k in range(0, len(self.M.D))]
-            for t in range(0, len(x))]
-
-    [alpha, Z] = self.forward_alg(x, psi)
-    beta = self.backward_alg(x, psi)
-
-    #build gamma
-    gamma = []
-    for t in range(0, len(x)):
-      res = lm.norm(lm.mult(alpha[t], beta[t]))[0]
-      gamma.append(res)
-    #update gamma
-    self.gamma[i] = gamma
-
-    #build xi:
-    xi = []
-    for t in range(0, len(x) - 1):
-      xi.append(lm.norm(lm.mult(self.M.A, lm.outer(alpha[t],
-        lm.mult(psi[t + 1], beta[t + 1]))))[0])
-    #update xi:
-    self.xi[i] = xi
-        
   def backward_alg(self, x, psi):
     """
     Runs the backwards algorithm and returns beta.

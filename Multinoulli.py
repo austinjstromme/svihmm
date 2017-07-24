@@ -3,6 +3,7 @@ from Dirichlet import Dirichlet
 from numpy import random as nprand
 from scipy.misc import logsumexp
 import LogMatrixUtil as lm
+from scipy.special import digamma as dg
 import numpy as np
 
 class Multinoulli(Exponential):
@@ -41,6 +42,15 @@ class Multinoulli(Exponential):
     else:
       self.prior = prior
 
+  def gen_log_expected(self):
+    """
+    Returns log expected distribution according to self.prior.
+    """
+    w = self.prior.get_natural()
+    temp = dg(np.sum(w))
+    params = np.array([np.exp(dg(w[l]) - temp) for l in range(0, len(w))])
+    return Multinoulli(params)
+
   def gen_sample(self):
     """
     Generates a single sample.
@@ -59,7 +69,7 @@ class Multinoulli(Exponential):
     """
     return np.array([np.log(self.params[k]/self.params[self.L - 1])
         for k in range(0, self.L)])
-    
+
   def set_natural(self, w):
     """
     Updates the parameters so the natural parameters become w
@@ -67,62 +77,7 @@ class Multinoulli(Exponential):
     Args:
       w: np.array of length L of new natural parameters
     """
-    self.params = np.exp(w)
-    self.params = (self.params/np.sum(self.params))
-
-  def natural_update(self, delta_w, eta):
-    """
-    Updates the natural parameters of this Dirichlet using delta_w. 
-
-    Args:
-      delta_w: a np.array of size L
-      eta: weight of the update
-
-    Effects:
-      self: the natural parameters w become (1 - eta)*w + eta*delta_w
-    """
-    w = self.get_natural()
-    self.set_natural((1. - eta)*w + eta*delta_w)
-
-  def VB_update(S, rho=1.):
-    """
-    Performs a VB update using the given states object.
-
-    Args:
-      S: States object
-      rho: weight to give to new natural parameters on the prior;
-        defaults to 1 (i.e. entirely new natural params)
-
-    Effects:
-      the natural parameters w of the prior on this distribution
-        become (1 - rho)*w + rho*(
-    """
-
-
-  def bayes_update(self, x, gamma_data, k, rho):
-    """
-    Updates the parameters as in the SVIHMM paper.
-
-    params:
-      x: a list of N observation sequences
-      gamma_data: a list of the smoothed posterior marginals
-        for each observation sequence. Thus gamma_data[i][t][k]
-        is the probabiltiy that the ith observation sequence at
-        time t was in state k. IN LOG DOMAIN.
-      k: the state this distribution corresponds to
-      rho: the step_size
-      
-    """
-    #TODO: implement
-    state_count = self.state_count(gamma_data, k)
-    grad = np.zeros(self.L)
-    for l in range(0, self.L):
-      self.params[l] = (np.exp(self.obs_count(x, gamma_data, k, l))
-                      /np.exp(state_count))
-      grad[l] = logsumexp([self.obs_count(x, gamma_data, k, l),
-                self.prior[l] - 1])
-    self.params = (1. - rho)*self.params + rho*np.exp(lm.norm(grad)[0])
-    
+    self.params = np.exp(w)/np.sum(np.exp(w))
 
   def update_params(self, x, gamma_data, k):
     """
@@ -140,9 +95,24 @@ class Multinoulli(Exponential):
       params: updates the parameters via EM
     """
     state_count = self.state_count(gamma_data, k)
-    for l in range(0, self.L):
-      self.params[l] = (np.exp(self.obs_count(x, gamma_data, k, l))
-                      /np.exp(state_count))
+    obs_count = self.obs_count(x, gamma_data, k)
+    self.params = np.exp(obs_count)/np.exp(state_count)
+
+  def get_expected_suff(self, S, j):
+    """
+    Returns the vector of the expected sufficient statistics from
+    a given states object; assume this dist is the one corresponding to
+    the jth hidden state.
+    """
+    return np.exp(self.obs_count(S.data, S.gamma, j))
+
+  def get_expected_local_suff(self, S, j, a, b):
+    """
+    Returns the vector of expected sufficient statistics from subchain
+    [a,b] according to a given states object; assums this dist is the one
+    corresponding to the jth hidden state.
+    """
+    return np.exp(self.local_obs_count(S.data, S.gamma, j, a, b))
 
   def state_count(self, gamma_data, j):
     """
@@ -156,34 +126,33 @@ class Multinoulli(Exponential):
                 xrange(0,len(gamma_data[i]))]
     return logsumexp(res)
 
-  def local_obs_count(self, x, gamma_data, j, l, a, b):
+  def local_obs_count(self, x, gamma_data, j, a, b):
     """
-    returns log of the expected number of times an observation
-    was in state j and emitted an l; a <= t <= b
+    returns numpy vector whose lth coordinate is the log of the expected
+    number of times an observation was in state j and emitted an l;
+    a <= t <= b
     """
-    res = []
-    for i in range(0,1):
-      for t in range(a, b):
-        if x[i][t] == l:
-          res.append(gamma_data[i][t][j])
-    if len(res) == 0:
-      res.append(np.log(0.0000001))
-    return logsumexp(res)
+    res = np.zeros((self.L, b - a + 1)) - np.inf
 
-  def obs_count(self, x, gamma_data, j, l):
+    for i in range(0, 1):
+      for t in range(a, b + 1):
+        res[x[i][t]][t - a] = gamma_data[i][t][j]
+
+    return logsumexp(res, axis=1)
+
+  def obs_count(self, x, gamma_data, j):
     """
-    returns log of the expected number of times an observation
-    was in state j and emitted an l
+    Returns a vector whose lth coord is the log of the expected
+    number of times an observation was in state j and emitted an l
     """
     N = len(x)
     res = []
-    for i in range(0,N):
-      for t in range(0,len(x[i])):
-        if x[i][t] == l:
-          res.append(gamma_data[i][t][j])
-    if len(res) == 0:
-      res.append(np.log(0.0000001))
-    return logsumexp(res)
+
+    for i in range(0, N):
+      res.append(self.local_obs_count([x[i]], [gamma_data[i]], j,
+                  0, len(x[i]) - 1))
+    res = np.array(res)
+    return logsumexp(res, axis=0)
 
   def mass(self, x):
     """

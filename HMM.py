@@ -22,7 +22,7 @@ class HMM(object):
     A: a KxK np.array of transition probabilities between states. NOT
       in log domain.
     pi: a 1xK np.array of start probabilities. NOT in log domain.
-    D: a list of K Distributions (see Distribution.py), one for
+    D: a list of K Exponential Distributions (see Exponential.py), one for
       each state
     """
     #TODO: add checks that the arguments are of the right form
@@ -39,12 +39,19 @@ class HMM(object):
     """
     return [self.K, np.exp(self.A), np.exp(self.pi), self.D]
 
-  def compare(self, M):
+  def compare(self, M, local=False):
     """
     Returns a real number representing the similarity between this
-    and another HMM M; symmetric operation.
+    and another HMM M; symmetric operation. If local=True we don't
+    compare the pi vectors. Heuristic for verifying structure learning.
     """
-    #TODO: implement
+    res = 0.
+    if not local:
+      res = np.linalg.norm(np.exp(self.pi) - np.exp(M.pi))
+    res += np.linalg.norm(np.exp(self.A) - np.exp(M.A))
+    for k in range(0, self.K):
+      res += np.linalg.norm(self.D[k].params - M.D[k].params)
+    return res
 
   def M_step(self, S):
     """
@@ -61,30 +68,28 @@ class HMM(object):
     for k in range(0, self.K):
       self.D[k].update_params(S.data, S.gamma, k)
 
-  def EM_step(self, x):
+  def EM_step(self, S):
     """
     Does a single step of EM.
 
     Args:
-      x: a list of N observation sequences; x[i] is a list of length
-        T_i of observations
-    """
-    N = len(x)
-    gamma_data = []
-    xi_data = []
-    # start by doing forwards backwards on each observation sequence
-    for j in range(0, N):
-      [gamma, xi, Z_vals] = fb.fb_main(x[j], self.A, self.D, self.pi)
-      gamma_data.append(gamma)
-      xi_data.append(xi)
+      S: states object to do EM with; must point to this HMM
 
+    Effects:
+      self: updates parameters according to M step
+      S: gamma and xi are update according to E step
+    """
+    # e-step
+    S.e_step()
+    
     # update A and pi
     self.update_trans(S)
     self.update_start(S)
-    # update the distribution at each hidden state
+    # update emissions
     for k in range(0, self.K):
-      self.D[k].update_params(x, gamma_data, k)
-
+      log_suff_stat = np.log(self.D[k].get_expected_suff(S, k))
+      self.D[k].set_natural(log_suff_stat)
+    
   def update_trans(self, S):
     """
     Updates the transition matrix A.
@@ -101,12 +106,12 @@ class HMM(object):
     """
     self.pi = S.get_start() - np.log(len(S.gamma))
 
-  def EM(self, x, N):
+  def EM(self, S, N):
     """
-    Does N steps of EM with observations x.
+    Does N steps of EM with states object S.
     """
     for i in range(0, N):
-      self.EM_step(x)
+      self.EM_step(S)
 
   def gen_obs(self, n):
     """

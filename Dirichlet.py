@@ -1,11 +1,11 @@
-from Exponential import Exponential
 import math
+from Exponential import Exponential
 from numpy import random as nprand
 from scipy.misc import logsumexp
 import LogMatrixUtil as lm
 import numpy as np
-from scipy.special import gamma
-from scipy.special import digamma
+from scipy.special import gamma 
+from scipy.special import digamma as dg
 
 class Dirichlet(Exponential):
   """
@@ -30,7 +30,6 @@ class Dirichlet(Exponential):
     """
     Generates a single sample.
     """
-    #TODO: implement
     raise NotImplementedError()
 
   def set_natural(self, w):
@@ -49,20 +48,20 @@ class Dirichlet(Exponential):
     """
     return self.params
 
-  def natural_update(self, delta_w, eta):
-    """
-    Updates the natural parameters of this Dirichlet using delta_w. 
-
-    Args:
-      delta_w: a np.array of size L
-      eta: weight of the update
-
-    Effects:
-      self: the natural parameters w become (1 - eta)*w + eta*delta_w
-    """
-    #TODO: move this method into Exponential family class
-    w = self.get_natural()
-    self.set_natural((1. - eta)*w + eta*delta_w)
+#TODO: check this can be deleted
+ # def natural_update(self, delta_w, eta):
+ #   """
+ #   Updates the natural parameters of this Dirichlet using delta_w. 
+#
+#    Args:
+#      delta_w: a np.array of size L
+#      eta: weight of the update
+#
+#    Effects:
+#      self: the natural parameters w become (1 - eta)*w + eta*delta_w
+#    """
+#    w = self.get_natural()
+#    self.set_natural((1. - eta)*w + eta*delta_w)
 
   def KL_div(self, other):
     """
@@ -78,7 +77,7 @@ class Dirichlet(Exponential):
     temp = 0.
     for j in range(0, self.params.shape[0]):
       temp += np.log(gamma(alo[j])/gamma(als[j]))
-      temp -= ((alo[j] - als[j])*(digamma(alo[j]) - digamma(alo_sum)))
+      temp -= ((alo[j] - als[j])*(dg(alo[j]) - dg(alo_sum)))
     res -= temp
     if math.isnan(res):
       res = 0.
@@ -86,18 +85,15 @@ class Dirichlet(Exponential):
       res = 0.
     return res
 
+  def mass(self, x):
+    """
+    Computes the probability of an observation x.
 
+    Args:
+      x: a single observation
 
-
-
-
-
-
-
-
-
-
-
-
-
+    Returns:
+      p(x)
+    """
+    raise NotImplementedError()
 
