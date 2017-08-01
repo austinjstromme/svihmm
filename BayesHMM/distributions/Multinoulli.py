@@ -1,10 +1,15 @@
-from Exponential import Exponential
-from Dirichlet import Dirichlet
+# exteneral packages
+import sys
+sys.path.append('../utils')
 from numpy import random as nprand
 from scipy.misc import logsumexp
-import LogMatrixUtil as lm
 from scipy.special import digamma as dg
 import numpy as np
+
+# internals
+from Exponential import Exponential
+from Dirichlet import Dirichlet
+import LogMatrixUtil as lm
 
 class Multinoulli(Exponential):
   """
@@ -78,6 +83,14 @@ class Multinoulli(Exponential):
       w: np.array of length L of new natural parameters
     """
     self.params = np.exp(w)/np.sum(np.exp(w))
+
+  def maximize_likelihood(self, S, j):
+    """
+    Updates the parameters of this distribution to maximize the likelihood
+    of it being the jth hidden state's emitter.
+    """
+    w = self.get_expected_suff(S, j)
+    self.set_natural(np.log(w))
 
   def update_params(self, x, gamma_data, k):
     """

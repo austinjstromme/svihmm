@@ -43,6 +43,13 @@ class Exponential(Distribution):
     """
     raise NotImplementedError("Exponential.py is an interface.")
 
+  def maximize_likelihood(self, S, j):
+    """
+    Updates the parameters of this distribution to maximize the likelihood
+    of it being the jth hidden state's emitter.
+    """
+    raise NotImplementedError("Exponential.py is an interface.")
+
   def mass(self, x):
     """
     Computes the probability of an observation x.

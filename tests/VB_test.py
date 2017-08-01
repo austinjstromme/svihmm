@@ -1,15 +1,17 @@
 """
 This file does some basic testing of our VB implementation.
 """
-import sys
-sys.path.append('..')
+# external packages
 import numpy as np
-import fb_compute as fb
+
+# internals
 from Multinoulli import Multinoulli as mn
 from Dirichlet import Dirichlet
 from HMM import HMM
 from States import States
 from VBHMM import VBHMM
+from Gaussian import Gaussian as norm
+from NormalInverseWishart import NormalInverseWishart as niw
 
 
 def run():
@@ -18,6 +20,11 @@ def run():
   num_tests = 3
 
   print("Running VB tests...")
+
+  #...Gaussian increasingness test...
+  temp = int(elbo_increase_Gaussian())
+  res += temp
+  print("  Gaussian increase test: " + str(temp) + "/1")
 
   #...correct init case...
   temp = int(compare_correct(eps))
@@ -53,6 +60,32 @@ def elbo_increase():
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
   VBlearner = make_VBHMM()
+  VBstates = States(VBlearner.gen_M(), x)
+
+  incr = True
+  last = -np.inf
+
+  for j in range(0, cnt):
+    VBlearner.VB_step(VBstates)
+    elbo = VBlearner.elbo(VBstates)
+    incr = (elbo > last) and incr
+    last = elbo
+
+  return incr
+
+def elbo_increase_Gaussian():
+  """
+  Run VB on a VBHMM; ensure that elbo is always increasing
+  """
+  M_true = make_Gaussian_HMM(0.9, 0.1, 0., 10., 1., 1.)
+  num_steps = 100  # controls length of observation sequences
+  N = 5  # number of observation sequences
+  cnt = 10 # number of EM steps
+
+  # generate observation sequences
+  x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
+
+  VBlearner = make_Gaussian_VBHMM()
   VBstates = States(VBlearner.gen_M(), x)
 
   incr = True
@@ -165,3 +198,33 @@ def make_VBHMM():
   u_D = [Dirichlet(np.array([3., 2.]))] + [Dirichlet(np.array([2., 3.]))]
   D = [mn([p, 1. - p]), mn([q, 1. - q])]
   return VBHMM(K, u_A, u_pi, u_D, D)
+
+def make_Gaussian_HMM(t_1, t_2, m_1, m_2, s_1, s_2):
+  K = 2
+  A = np.array([[t_1, 1. - t_1], [1. - t_2, t_2]])
+  pi = np.array([0.5, 0.5])
+  D = [norm([m_1, s_1]), norm([m_2, s_2])]
+  
+  return HMM(K, A, pi, D)
+
+def make_Gaussian_VBHMM():
+  """
+  Factory method to create a VBHMM
+  """
+  K = 2
+  p = 0.5
+  q = 0.5
+  # specify hyperparams
+  u_A = Dirichlet(np.array([3., 3.]))
+  u_pi = Dirichlet(np.array([2., 2.]))
+  # hyperparams for the emissions:
+  # centered around 0, sigma = 1
+  suff_stats_one = [np.array([0.]), np.array([[10.]]), 10., 10.]
+
+  # centered around 5, sigma = 1
+  suff_stats_two = [np.array([5.]), np.array([[10.]]), 10., 10.]
+  u_D = [niw(suff_stats_one), niw(suff_stats_two)]
+  D = [norm([0., 1.]), norm([0., 1.])]
+  return VBHMM(K, u_A, u_pi, u_D, D)
+
+run()

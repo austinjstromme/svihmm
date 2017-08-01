@@ -1,11 +1,14 @@
+# external imports
 import math
-from Exponential import Exponential
-from numpy import random as nprand
-from scipy.misc import logsumexp
-import LogMatrixUtil as lm
 import numpy as np
+from scipy.misc import logsumexp
 from scipy.special import gamma 
 from scipy.special import digamma as dg
+from numpy import random as nprand
+
+# internals
+from Exponential import Exponential
+import LogMatrixUtil as lm
 
 class Dirichlet(Exponential):
   """
@@ -48,20 +51,12 @@ class Dirichlet(Exponential):
     """
     return self.params
 
-#TODO: check this can be deleted
- # def natural_update(self, delta_w, eta):
- #   """
- #   Updates the natural parameters of this Dirichlet using delta_w. 
-#
-#    Args:
-#      delta_w: a np.array of size L
-#      eta: weight of the update
-#
-#    Effects:
-#      self: the natural parameters w become (1 - eta)*w + eta*delta_w
-#    """
-#    w = self.get_natural()
-#    self.set_natural((1. - eta)*w + eta*delta_w)
+  def maximize_likelihood(self, S, j):
+    """
+    Updates the parameters of this distribution to maximize the likelihood
+    of it being the jth hidden state's emitter.
+    """
+    raise NotImplementedError()
 
   def KL_div(self, other):
     """
@@ -72,16 +67,13 @@ class Dirichlet(Exponential):
     als = self.get_natural() + 1.
     alo_sum = np.sum(alo)
 
-
     res = np.log(gamma(alo_sum)/gamma(np.sum(als)))
     temp = 0.
     for j in range(0, self.params.shape[0]):
       temp += np.log(gamma(alo[j])/gamma(als[j]))
       temp -= ((alo[j] - als[j])*(dg(alo[j]) - dg(alo_sum)))
     res -= temp
-    if math.isnan(res):
-      res = 0.
-    if res == np.inf:
+    if math.isnan(res) or (res == np.inf):
       res = 0.
     return res
 

@@ -2,12 +2,10 @@
 This file does some basic testing of our EM implementation.
 """
 # external imports
-import sys
-sys.path.append('..')
 import numpy as np
 
 # internals
-from Multinoulli import Multinoulli as mn
+from BayesHMM.distributions.Multinoulli import Multinoulli as mn
 from Gaussian import Gaussian as norm
 from Dirichlet import Dirichlet
 from HMM import HMM
@@ -70,14 +68,14 @@ def NLL_decrease_Gaussian():
   Run EM on a HMM; ensure that NLL is always decreasing
   """
   M_true = make_Gaussian_HMM(0.9, 0.1, 0., 10., 1., 1.)
-  num_steps = 200  # controls length of observation sequences
+  num_steps = 100  # controls length of observation sequences
   N = 5  # number of observation sequences
   cnt = 10 # number of EM steps
 
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
-  EMlearner = make_Gaussian_HMM(0.6, 0.4, -1.,1., 1., 1.)
+  EMlearner = make_Gaussian_HMM(0.6, 0.4, 0. , 5., 1., 1.)
   EMstates = States(EMlearner, x)
 
   decr = True
@@ -95,7 +93,7 @@ def make_Gaussian_HMM(t_1, t_2, m_1, m_2, s_1, s_2):
   K = 2
   A = np.array([[t_1, 1. - t_1], [1. - t_2, t_2]])
   pi = np.array([0.5, 0.5])
-  D = [norm([m_1, s_1]), norm([m_1, s_2])]
+  D = [norm([m_1, s_1]), norm([m_2, s_2])]
   
   return HMM(K, A, pi, D)
 

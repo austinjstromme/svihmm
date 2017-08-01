@@ -4,10 +4,10 @@
  worked out by hand. It also tests xi[0] for both cases against
  what scratch work suggests it should be. 
 """
-import sys
-sys.path.append('..')
+# external packages
 import numpy as np
-import fb_compute as fb
+
+# internals
 from Multinoulli import Multinoulli as mn
 from HMM import HMM
 from States import States

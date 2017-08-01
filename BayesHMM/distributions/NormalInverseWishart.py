@@ -75,6 +75,13 @@ class NormalInverseWishart(Exponential):
     Computes the KL divergence between self and other; i.e.
     KL(other || self).
     """
+    return 0.0
+
+  def maximize_likelihood(self, S, j):
+    """
+    Updates the parameters of this distribution to maximize the likelihood
+    of it being the jth hidden state's emitter.
+    """
     raise NotImplementedError()
 
   def mass(self, x):

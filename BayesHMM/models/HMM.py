@@ -1,8 +1,10 @@
+# external packages
 import numpy as np
-import fb_compute as fb
-from Multinoulli import Multinoulli
 import math
 import scipy as sc
+
+# internals
+from Multinoulli import Multinoulli
 import LogMatrixUtil as lm
 
 class HMM(object):
@@ -87,8 +89,7 @@ class HMM(object):
     self.update_start(S)
     # update emissions
     for k in range(0, self.K):
-      log_suff_stat = np.log(self.D[k].get_expected_suff(S, k))
-      self.D[k].set_natural(log_suff_stat)
+      self.D[k].maximize_likelihood(S, k)
     
   def update_trans(self, S):
     """

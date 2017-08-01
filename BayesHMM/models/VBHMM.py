@@ -1,10 +1,13 @@
-from HMM import HMM
+# external packages
+from scipy.special import digamma as dg
+from random import randrange
 import numpy as np
+
+# internals
+from HMM import HMM
 from Dirichlet import Dirichlet
 from Multinoulli import Multinoulli
 import LogMatrixUtil as lm
-from scipy.special import digamma as dg
-from random import randrange
 
 class VBHMM(object):
   """
@@ -34,7 +37,7 @@ class VBHMM(object):
       K: the number of hidden states
       u_A: the Dirichlet distribution governing the prior on the rows of A
       u_pi: a Dirichlet distribution which is the prior on the start
-      u_D: list of Dirichlets governing hyperparameters on the emissions
+      u_D: list of priors governing hyperparameters on the emissions
       D: list of K exp family dists (see Exponential.py) governing
         emissions
     """

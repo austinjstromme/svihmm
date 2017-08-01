@@ -4,7 +4,7 @@ from scipy.stats import multivariate_normal
 
 # internal packages
 from Exponential import Exponential
-from Gaussian_impl import _GaussianSuffStats
+import Gaussian_impl as impl
 
 class NDGaussian(Exponential):
   """
@@ -89,7 +89,7 @@ class NDGaussian(Exponential):
     [a,b] according to a given states object; assums this dist is the one
     corresponding to the jth hidden state.
     """
-    return _GaussianSuffStats.get_stats(S, j, a, b, self.mu.shape[0])
+    return impl._GaussianSuffStats.get_stats(S, j, a, b, self.mu.shape[0])
 
   def get_expected_suff(self, S, j):
     """
@@ -100,6 +100,16 @@ class NDGaussian(Exponential):
     T = len(S.data[0])
 
     return self.get_expected_local_suff(S, j, 0, T - 1)
+
+  def maximize_likelihood(self, S, j):
+    """
+    Updates the parameters of this distribution to maximize the likelihood
+    of it being the jth hidden state's emitter.
+    """
+    T = len(S.data[0])
+    dim = self.mu.shape[0]
+
+    self.mu, self.sigma = impl.__maximize_likelihood(S, j, 0, T - 1, dim)
 
   def mass(self, x):
     """

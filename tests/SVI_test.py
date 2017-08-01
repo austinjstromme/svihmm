@@ -1,10 +1,10 @@
 """
 This file does some basic testing of the VBHMM class.
 """
-import sys
-sys.path.append('..')
+# external packages
 import numpy as np
-import fb_compute as fb
+
+# internals
 from Multinoulli import Multinoulli as mn
 from Dirichlet import Dirichlet
 from HMM import HMM

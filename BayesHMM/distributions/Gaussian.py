@@ -6,7 +6,7 @@ from scipy.stats import norm
 import numpy as np
 
 # internals
-from Gaussian_impl import _GaussianSuffStats
+import Gaussian_impl as impl
 from NormalInverseWishart import NormalInverseWishart
 from Exponential import Exponential
 import LogMatrixUtil as lm
@@ -68,7 +68,7 @@ class Gaussian(Exponential):
     # TODO: make sure this works; honestly should be able to just use NDGaussian
     mu, sigma, kappa, nu = self.prior.get_params()
 
-    est_params = [mu, nu*sigma]
+    est_params = [mu[0], nu*sigma[0][0]]
 
     return Gaussian(est_params)
 
@@ -80,7 +80,7 @@ class Gaussian(Exponential):
     corresponding to the jth hidden state.
     """
   
-    return _GaussianSuffStats.get_stats(S, j, a, b, 1)
+    return impl._GaussianSuffStats.get_stats(S, j, a, b, 1)
 
   def get_expected_suff(self, S, j):
     """
@@ -104,3 +104,16 @@ class Gaussian(Exponential):
     """
     return norm.pdf(x, self.mu, self.sigma)
 
+  def maximize_likelihood(self, S, j):
+    """
+    Updates the parameters of this distribution to maximize the likelihood
+    of it being the jth hidden state's emitter.
+    """
+    T = len(S.data[0]) 
+
+    mu, sigma = impl._GaussianSuffStats.maximize_likelihood_helper(
+                S, j, 0, T - 1, 1)
+
+    self.mu = mu[0]
+
+    self.sigma = sigma[0][0]

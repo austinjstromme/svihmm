@@ -1,8 +1,11 @@
+# external packages
 import numpy as np
 import scipy as sc
-import LogMatrixUtil as lm
 import math
 import random
+
+# internals
+import LogMatrixUtil as lm
 
 class States(object):
   """
