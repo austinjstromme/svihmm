@@ -6,10 +6,10 @@ import numpy as np
 
 # internals
 from BayesHMM.distributions.Multinoulli import Multinoulli as mn
-from Gaussian import Gaussian as norm
-from Dirichlet import Dirichlet
-from HMM import HMM
-from States import States
+#from Gaussian import Gaussian as norm
+#from Dirichlet import Dirichlet
+#from HMM import HMM
+#from States import States
 
 def run():
   eps = 0.2
