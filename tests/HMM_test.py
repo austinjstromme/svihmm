@@ -5,11 +5,12 @@ This file does some basic testing of our EM implementation.
 import numpy as np
 
 # internals
-from BayesHMM.distributions.Multinoulli import Multinoulli as mn
-#from Gaussian import Gaussian as norm
-#from Dirichlet import Dirichlet
-#from HMM import HMM
-#from States import States
+import context # svihmm
+from svihmm.distributions.Multinoulli import Multinoulli as mn
+from svihmm.distributions.Gaussian import Gaussian as norm
+from svihmm.distributions.Dirichlet import Dirichlet
+from svihmm.models.HMM import HMM
+from svihmm.models.States import States
 
 def run():
   eps = 0.2

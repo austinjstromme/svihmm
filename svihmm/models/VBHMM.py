@@ -4,10 +4,11 @@ from random import randrange
 import numpy as np
 
 # internals
+import context  # for utils and distributions
 from HMM import HMM
-from Dirichlet import Dirichlet
-from Multinoulli import Multinoulli
-import LogMatrixUtil as lm
+from distributions.Dirichlet import Dirichlet
+from distributions.Multinoulli import Multinoulli
+import utils.LogMatrixUtil as lm
 
 class VBHMM(object):
   """

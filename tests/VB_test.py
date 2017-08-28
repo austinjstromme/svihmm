@@ -5,13 +5,14 @@ This file does some basic testing of our VB implementation.
 import numpy as np
 
 # internals
-from Multinoulli import Multinoulli as mn
-from Dirichlet import Dirichlet
-from HMM import HMM
-from States import States
-from VBHMM import VBHMM
-from Gaussian import Gaussian as norm
-from NormalInverseWishart import NormalInverseWishart as niw
+import context  # for svihmm
+from svihmm.distributions.Multinoulli import Multinoulli as mn
+from svihmm.distributions.Dirichlet import Dirichlet
+from svihmm.distributions.Gaussian import Gaussian as norm
+from svihmm.distributions.NormalInverseWishart import NormalInverseWishart as niw
+from svihmm.models.HMM import HMM
+from svihmm.models.States import States
+from svihmm.models.VBHMM import VBHMM
 
 
 def run():

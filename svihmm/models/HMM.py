@@ -4,8 +4,9 @@ import math
 import scipy as sc
 
 # internals
-from Multinoulli import Multinoulli
-import LogMatrixUtil as lm
+import context  # for utils and distributions
+from distributions.Multinoulli import Multinoulli
+import utils.LogMatrixUtil as lm
 
 class HMM(object):
   """

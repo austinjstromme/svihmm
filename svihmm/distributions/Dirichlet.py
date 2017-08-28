@@ -7,8 +7,9 @@ from scipy.special import digamma as dg
 from numpy import random as nprand
 
 # internals
+import context
 from Exponential import Exponential
-import LogMatrixUtil as lm
+import utils.LogMatrixUtil as lm
 
 class Dirichlet(Exponential):
   """

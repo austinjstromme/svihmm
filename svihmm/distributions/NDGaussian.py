@@ -28,8 +28,8 @@ class NDGaussian(Exponential):
       or (len(params[1].shape) != 2)
       or (params[0].shape[0] != params[1].shape[0])
       or (params[0].shape[0] != params[1].shape[1])):
-      raise ValueError("NDGaussian initialization failed. Malformed arguments
-        to the constructor")
+      raise ValueError("NDGaussian initialization failed. Malformed arguments"
+        + "to the constructor")
 
     self.mu = params[0]
     self.sigma = params[1]

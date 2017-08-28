@@ -8,9 +8,10 @@
 import numpy as np
 
 # internals
-from Multinoulli import Multinoulli as mn
-from HMM import HMM
-from States import States
+import context  # for svihmm
+from svihmm.distributions.Multinoulli import Multinoulli as mn
+from svihmm.models.HMM import HMM
+from svihmm.models.States import States
 
 def umbrella_example(eps):
   """

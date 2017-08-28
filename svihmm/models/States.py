@@ -5,7 +5,8 @@ import math
 import random
 
 # internals
-import LogMatrixUtil as lm
+import context  # for utils
+import utils.LogMatrixUtil as lm
 
 class States(object):
   """

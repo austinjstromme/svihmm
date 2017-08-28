@@ -6,10 +6,11 @@ from scipy.stats import norm
 import numpy as np
 
 # internals
+import context
 import Gaussian_impl as impl
 from NormalInverseWishart import NormalInverseWishart
 from Exponential import Exponential
-import LogMatrixUtil as lm
+import utils.LogMatrixUtil as lm
 
 class Gaussian(Exponential):
   """

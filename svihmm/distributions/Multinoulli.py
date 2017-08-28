@@ -9,7 +9,8 @@ import numpy as np
 # internals
 from Exponential import Exponential
 from Dirichlet import Dirichlet
-import LogMatrixUtil as lm
+import context
+import utils.LogMatrixUtil as lm
 
 class Multinoulli(Exponential):
   """
