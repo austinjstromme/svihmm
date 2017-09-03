@@ -9,6 +9,7 @@ import numpy as np
 import context
 import Gaussian_impl as impl
 from NormalInverseWishart import NormalInverseWishart
+from Distribution import Distribution
 from Exponential import Exponential
 import utils.LogMatrixUtil as lm
 
@@ -65,13 +66,20 @@ class Gaussian(Exponential):
     """
     Generates the log expected distribution according to the
     current prior.
+
+    NOTE: The returned distribution may only implement
+    distribution.py
     """
-    # TODO: make sure this works; honestly should be able to just use NDGaussian
+    # TODO: follow Bishop - change this to return a general
+      # distribution you can just get mass on
     mu, sigma, kappa, nu = self.prior.get_params()
 
-    est_params = [mu[0], nu*sigma[0][0]]
+    lambduh = self.prior.lambduh_tilde()
 
-    return Gaussian(est_params)
+    mass = lambda x : (norm.pdf(x, mu[0], sigma[0][0]/nu)*(lambduh**0.5)*
+      np.exp(-0.5/kappa))
+
+    return Distribution(mass)
 
 
   def get_expected_local_suff(self, S, j, a, b):
@@ -80,8 +88,10 @@ class Gaussian(Exponential):
     [a,b] according to a given states object; assums this dist is the one
     corresponding to the jth hidden state.
     """
-  
-    return impl._GaussianSuffStats.get_stats(S, j, a, b, 1)
+    res = impl._GaussianSuffStats.get_stats(S, j, a, b, 1)
+    print("res == " + str(res))
+
+    return res
 
   def get_expected_suff(self, S, j):
     """
@@ -110,7 +120,7 @@ class Gaussian(Exponential):
     Updates the parameters of this distribution to maximize the likelihood
     of it being the jth hidden state's emitter.
     """
-    T = len(S.data[0]) 
+    T = len(S.data[0])
 
     mu, sigma = impl._GaussianSuffStats.maximize_likelihood_helper(
                 S, j, 0, T - 1, 1)
@@ -118,3 +128,9 @@ class Gaussian(Exponential):
     self.mu = mu[0]
 
     self.sigma = sigma[0][0]
+
+  def __str__(self):
+    """
+    String representation of the HMM
+    """
+    return ("mu, sigma = " + str(self.mu) + " " + str(self.sigma))

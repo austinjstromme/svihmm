@@ -24,7 +24,7 @@ class _GaussianSuffStats():
     statistics method.
     """
     mu_0, sigma_0, kappa_0, nu_0 = l
-   
+
     L = [x for x in mu_0]
 
     for i in range(0, dim):

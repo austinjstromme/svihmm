@@ -1,5 +1,7 @@
 # external packages
 import numpy as np
+from scipy.special import digamma as dg
+from scipy.special import gamma as Gamma
 
 # internals
 from Exponential import Exponential
@@ -75,7 +77,59 @@ class NormalInverseWishart(Exponential):
     Computes the KL divergence between self and other; i.e.
     KL(other || self).
     """
-    return 0.0
+    mu_0, sigma_0, kappa_0, nu_0 = self.get_params()
+    mu_k, sigma_k, kappa_k, nu_k = other.get_params()
+
+    lambduh = other.lambduh_tilde()
+
+    lambduh_k = np.linalg.inv(sigma_k)
+
+    res = self.dim*0.5*np.log(kappa_0/kappa_k) \
+        - self.dim*(kappa_0/kappa_k - 0.5) \
+        - kappa_0*nu_k*((mu_k - mu_0).transpose().dot(
+            lambduh_k.dot(mu_k - mu_0))).sum() \
+        + (nu_0 - self.dim - 1)*0.5*np.log(lambduh) \
+        - 0.5*nu_k*(np.trace(sigma_0.dot(lambduh_k))) \
+        + other.inv_wishart_entropy() \
+        + self.inv_wishart_log_partition()
+
+    return res
+
+  def inv_wishart_log_partition(self):
+    """
+    Returns the log partition function of self's inverse wishart.
+    """
+    #TODO: verify correctness. Following pybasicbayes here
+    mu, sigma, kappa, nu = self.get_params()
+    D = self.dim
+    return -(nu*0.5*np.log(np.linalg.det(sigma))
+      - nu*D*0.5*np.log(2) - D*(D - 1.)*0.25*np.log(np.pi)
+      - sum([Gamma(0.5*(nu + 1. - i)) for i in range(1, D + 1)]))
+
+  def inv_wishart_entropy(self):
+    """
+    Returns the entropy of self's inverse wishart.
+    """
+    #TODO: verify correctness. Following pybasicbayes here
+    mu, sigma, kappa, nu = self.get_params()
+    D = self.dim
+    
+    log_lambduh = np.log(self.lambduh_tilde())
+    return self.inv_wishart_log_partition() - (nu - D - 1)*0.5*log_lambduh \
+      + nu*D*0.5
+    
+
+  def lambduh_tilde(self):
+    """
+    Returns lambduh tilde; see Bishop 10.65
+    """
+    mu, sigma, kappa, nu = self.get_params()
+    D = self.dim
+
+    log_lambduh = (sum([dg(0.5*(nu + 1. - i)) for i in range(1, D + 1)])
+      + D*np.log(2.) - np.log(np.linalg.det(sigma)))
+
+    return np.exp(log_lambduh)
 
   def maximize_likelihood(self, S, j):
     """

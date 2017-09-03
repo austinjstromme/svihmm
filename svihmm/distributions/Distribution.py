@@ -1,11 +1,14 @@
 
 class Distribution(object):
+  """
+  A distribution simply encapsulates a mass function.
+  """
 
-  def __init__(self):
-    raise NotImplementedError("Distribution.py is an interface.")
-
-  def gen_sample(self):
-    raise NotImplementedError("Distribution.py is an interface.")
+  def __init__(self, mass):
+    """
+    Initializes a distribution with mass method mass.
+    """
+    self.mass = mass
 
   def mass(self, x):
     """
@@ -17,4 +20,4 @@ class Distribution(object):
     Returns:
       p(x)
     """
-    raise NotImplementedError("Distribution.py is an interface.")
+    return self.mass(x)
