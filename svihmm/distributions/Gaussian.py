@@ -64,7 +64,7 @@ class Gaussian(Exponential):
 
   def gen_log_expected(self):
     """
-    Generates the log expected distribution according to the
+    Generates the exp log expected distribution according to the
     current prior.
 
     NOTE: The returned distribution may only implement
@@ -76,8 +76,8 @@ class Gaussian(Exponential):
 
     lambduh = self.prior.lambduh_tilde()
 
-    mass = lambda x : (norm.pdf(x, mu[0], sigma[0][0]/nu)*(lambduh**0.5)*
-      np.exp(-0.5/kappa))
+    mass = lambda x : ((lambduh**0.5)*np.exp(-0.5*kappa - 0.5*nu*
+      ((x - mu[0])**2)/(sigma[0][0]**2))*((2*np.pi)**(-0.5)))
 
     return Distribution(mass)
 
@@ -131,6 +131,6 @@ class Gaussian(Exponential):
 
   def __str__(self):
     """
-    String representation of the HMM
+    String representation of the Gaussian
     """
     return ("mu, sigma = " + str(self.mu) + " " + str(self.sigma))

@@ -38,7 +38,6 @@ def run():
   res += temp
   print("  simple case: " + str(temp) + "/1")
 
-
   #...increasingness test...
   temp = int(elbo_increase())
   res += temp
@@ -79,12 +78,14 @@ def elbo_increase_Gaussian():
   Run VB on a VBHMM; ensure that elbo is always increasing
   """
   M_true = make_Gaussian_HMM(0.9, 0.1, 0., 10., 1., 1.)
-  num_steps = 100  # controls length of observation sequences
-  N = 5  # number of observation sequences
+  num_steps = 2  # controls length of observation sequences
+  N = 1  # number of observation sequences
   cnt = 10 # number of EM steps
 
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
+
+  print("obs == " + str(x))
 
   VBlearner = make_Gaussian_VBHMM()
   VBstates = States(VBlearner.gen_M(), x)
@@ -93,10 +94,12 @@ def elbo_increase_Gaussian():
   last = -np.inf
 
   for j in range(0, cnt):
+    print("VBlearner = " + str(VBlearner))
     VBlearner.VB_step(VBstates)
     elbo = VBlearner.elbo(VBstates)
     incr = (elbo > last) and incr
     last = elbo
+    print("elbo = " + str(elbo))
 
   return incr
 
@@ -220,10 +223,10 @@ def make_Gaussian_VBHMM():
   u_pi = Dirichlet(np.array([2., 2.]))
   # hyperparams for the emissions:
   # centered around 0, sigma = 1
-  suff_stats_one = [np.array([0.]), np.array([[10.]]), 10., 10.]
+  suff_stats_one = [np.array([0.]), np.array([[1.]]), 1., 1.]
 
   # centered around 5, sigma = 1
-  suff_stats_two = [np.array([5.]), np.array([[10.]]), 10., 10.]
+  suff_stats_two = [np.array([5.]), np.array([[1.]]), 1., 1.]
   u_D = [niw(suff_stats_one), niw(suff_stats_two)]
   D = [norm([0., 1.]), norm([0., 1.])]
   return VBHMM(K, u_A, u_pi, u_D, D)

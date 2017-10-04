@@ -20,7 +20,7 @@ def run():
   print("Running HMM tests...")
 
   #...correct init case...
-  temp = int(compare_correct(2*eps))
+  temp = int(compare_correct(3*eps))
   res += temp
   print("  correct init case: " + str(temp) + "/1")
 
@@ -45,7 +45,7 @@ def NLL_decrease():
   M_true = biased_coins_HMM(0.9, 0.1, 0.05, 0.8)
   num_steps = 200  # controls length of observation sequences
   N = 5  # number of observation sequences
-  cnt = 10 # number of EM steps
+  cnt = 20 # number of EM steps
 
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
@@ -59,7 +59,7 @@ def NLL_decrease():
   for j in range(0, cnt):
     EMlearner.EM_step(EMstates)
     NLL = -EMstates.LL()
-    decr = (last > NLL) 
+    decr = (last > NLL)
     last = NLL
 
   return decr
@@ -72,6 +72,7 @@ def NLL_decrease_Gaussian():
   num_steps = 100  # controls length of observation sequences
   N = 5  # number of observation sequences
   cnt = 10 # number of EM steps
+  EPS = 0.0001
 
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
@@ -85,7 +86,7 @@ def NLL_decrease_Gaussian():
   for j in range(0, cnt):
     EMlearner.EM_step(EMstates)
     NLL = -EMstates.LL()
-    decr = (last > NLL) 
+    decr = ((last + EPS) >= NLL) 
     last = NLL
 
   return decr

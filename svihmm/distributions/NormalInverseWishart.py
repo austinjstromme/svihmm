@@ -84,14 +84,23 @@ class NormalInverseWishart(Exponential):
 
     lambduh_k = np.linalg.inv(sigma_k)
 
-    res = self.dim*0.5*np.log(kappa_0/kappa_k) \
-        - self.dim*(kappa_0/kappa_k - 0.5) \
-        - kappa_0*nu_k*((mu_k - mu_0).transpose().dot(
-            lambduh_k.dot(mu_k - mu_0))).sum() \
-        + (nu_0 - self.dim - 1)*0.5*np.log(lambduh) \
-        - 0.5*nu_k*(np.trace(sigma_0.dot(lambduh_k))) \
-        + other.inv_wishart_entropy() \
-        + self.inv_wishart_log_partition()
+    #res = self.dim*0.5*np.log(kappa_0/kappa_k) \
+    #    - self.dim*(kappa_0/kappa_k - 0.5) \
+    #    - kappa_0*nu_k*((mu_k - mu_0).transpose().dot(
+    #        lambduh_k.dot(mu_k - mu_0))).sum() \
+    #    + (nu_0 - self.dim - 1)*0.5*np.log(lambduh) \
+    #    - 0.5*nu_k*(np.trace(sigma_0.dot(lambduh_k))) \
+    #    + other.inv_wishart_entropy() \
+    #    + self.inv_wishart_log_partition()
+
+    res = -0.5*(np.log(lambduh) + self.dim*(np.log(kappa_k/(2*np.pi))
+      - 1)) + other.inv_wishart_entropy() \
+      + 0.5*(self.dim*np.log(kappa_0/(2*np.pi)) + np.log(lambduh) \
+      - self.dim*kappa_0/kappa_k - kappa_0*nu_k*((mu_k
+      - mu_0).transpose().dot(lambduh_k.dot(mu_k - mu_0))).sum()) \
+      + self.inv_wishart_log_partition() \
+      + (nu_0 - self.dim - 1)*0.5*np.log(lambduh) - 0.5*nu_k \
+      *np.trace(lambduh_k.dot(sigma_0))
 
     return res
 
@@ -104,7 +113,7 @@ class NormalInverseWishart(Exponential):
     D = self.dim
     return -(nu*0.5*np.log(np.linalg.det(sigma))
       - nu*D*0.5*np.log(2) - D*(D - 1.)*0.25*np.log(np.pi)
-      - sum([Gamma(0.5*(nu + 1. - i)) for i in range(1, D + 1)]))
+      - sum([np.log(abs(Gamma(0.5*(nu + 1. - i)))) for i in range(1, D + 1)]))
 
   def inv_wishart_entropy(self):
     """
@@ -115,9 +124,8 @@ class NormalInverseWishart(Exponential):
     D = self.dim
     
     log_lambduh = np.log(self.lambduh_tilde())
-    return self.inv_wishart_log_partition() - (nu - D - 1)*0.5*log_lambduh \
-      + nu*D*0.5
-    
+    return (self.inv_wishart_log_partition() - (nu - D - 1)*0.5*log_lambduh
+      + nu*D*0.5)
 
   def lambduh_tilde(self):
     """

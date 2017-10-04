@@ -186,7 +186,7 @@ class VBHMM(object):
       if np.min(pi) < 0:
         pi = -pi
       pi = (1./np.sum(pi))*pi
-    else:  
+    else:
       w = self.w_pi.get_natural()
       temp = dg(np.sum(w))
       pi = np.array([np.exp(dg(w[k]) - temp) for k in range(0, self.K)])
@@ -200,7 +200,7 @@ class VBHMM(object):
   def elbo(self, S):
     """
     Returns the Evidence Lower Bound (elbo) of this VBHMM with states
-    S.
+    S. Note: this only valid immediately after an e-step has been done.
 
     Args:
       S: a States object which points to a current auxiliary HMM for this
@@ -210,18 +210,9 @@ class VBHMM(object):
       elbo
     """
     res = -self.u_pi.KL_div(self.w_pi)
-    #print("KL(w_pi || u_pi) = " + str(-res))
     for j in range(0, self.K):
-      #print("find self.w_A[j] = " + str(self.w_A[j].get_natural() + 1.))
-      #print("find self.u_pi = " + str(self.u_pi.get_natural() + 1.))
-      temp = self.u_A.KL_div(self.w_A[j])
-      #print("A[" + str(j) + "]: find their KL_div is " + str(temp))
-      res -= temp
-      temp = self.u_D[j].KL_div(self.D[j].prior)
-      #print("D[" + str(j) + "]: find their KL_div is " + str(temp))
-      res -= temp
+      res -= self.u_A.KL_div(self.w_A[j]) + self.u_D[j].KL_div(self.D[j].prior)
 
-    #print("find S.LL() = " + str(S.LL()))
     res += S.LL()
     return res
 
@@ -233,5 +224,5 @@ class VBHMM(object):
       res += str(self.w_A[k].get_natural() + 1.) + "\n"
     res += "  D = "
     for k in range(0, self.K):
-      res += str(self.D[k].prior.get_natural() + 1.) + "\n"
+      res += str(self.D[k].prior.get_natural()) + "\n"
     return res
