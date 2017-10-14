@@ -43,13 +43,17 @@ class NormalInverseWishart(Exponential):
     """
     Returns the vector of natural parameters.
     """
-    return self.w
+    normal_params = _GaussianSuffStats.to_list(self.w, self.dim)
+    natural_params = _GaussianSuffStats.NIW_normal_to_natural(normal_params)
+    return _GaussianSuffStats.to_vec(natural_params, self.dim)
 
   def set_natural(self, w):
     """
     Sets the vector of natural parameters.
     """
-    self.w = w
+    natural_params = _GaussianSuffStats.to_list(w, self.dim)
+    normal_params = _GaussianSuffStats.NIW_natural_to_normal(natural_params)
+    self.w = _GaussianSuffStats.to_vec(normal_params, self.dim)
 
   def get_params(self):
     """

@@ -153,8 +153,9 @@ class VBHMM(object):
     # update emissions
     for j in range(0, self.K):
       dist = self.D[j]
-      dist.prior.set_natural(dist.get_expected_suff(S, j)
-                             + self.u_D[j].get_natural())
+      expected_suff = dist.get_expected_suff(S, j)
+      prior = self.u_D[j].get_natural()
+      dist.prior.set_natural(expected_suff + prior)
 
     # update pi
     new_pi = self.u_pi.get_natural() + np.exp(S.get_start())
@@ -195,8 +196,7 @@ class VBHMM(object):
     Dists = [self.D[j].gen_log_expected() for j in range(0, self.K)]
 
     return HMM(self.K, A, pi, Dists)
- 
-      
+
   def elbo(self, S):
     """
     Returns the Evidence Lower Bound (elbo) of this VBHMM with states
@@ -213,7 +213,9 @@ class VBHMM(object):
     for j in range(0, self.K):
       res -= self.u_A.KL_div(self.w_A[j]) + self.u_D[j].KL_div(self.D[j].prior)
 
-    res += S.LL()
+    ll = S.LL()
+    print("                                 LL = " + str(ll))
+    res += ll
     return res
 
   def __str__(self):

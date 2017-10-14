@@ -8,6 +8,7 @@ import numpy as np
 import context # svihmm
 from svihmm.distributions.Multinoulli import Multinoulli as mn
 from svihmm.distributions.Gaussian import Gaussian as norm
+from svihmm.distributions.NDGaussian import NDGaussian as mnorm
 from svihmm.distributions.Dirichlet import Dirichlet
 from svihmm.models.HMM import HMM
 from svihmm.models.States import States
@@ -15,7 +16,7 @@ from svihmm.models.States import States
 def run():
   eps = 0.2
   res = 0
-  num_tests = 3
+  num_tests = 4
 
   print("Running HMM tests...")
 
@@ -34,7 +35,11 @@ def run():
   res += temp
   print("  Gaussian HMM decrease test: " + str(temp) + "/1")
 
-  print("HMM tests completed: " + str(res) + "/" + str(num_tests))
+  #... multi Gaussian decreasingness test...
+  temp = int(NLL_decrease_multi_Gaussian())
+  res += temp
+  print("  multi Gaussian HMM decrease test: " + str(temp) + "/1")
+  print("  HMM tests completed: " + str(res) + "/" + str(num_tests))
 
   return (res == num_tests)
 
@@ -91,6 +96,39 @@ def NLL_decrease_Gaussian():
 
   return decr
 
+def NLL_decrease_multi_Gaussian():
+  """
+  Run EM on a HMM; ensure that NLL is always decreasing
+  """
+  mu_0 = np.array([0., 0.])
+  mu_1 = np.array([10., 10.])
+  sigma_0 = np.eye(2)
+  M_true = make_multi_Gaussian_HMM(0.9, 0.1, mu_0, mu_1, sigma_0, sigma_0)
+  num_steps = 100  # controls length of observation sequences
+  N = 5  # number of observation sequences
+  cnt = 10 # number of EM steps
+  EPS = 0.0001
+
+  # generate observation sequences
+  x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
+
+  mu_2 = np.array([-10., -10.])
+  mu_3 = np.array([10., 10.])
+
+  EMlearner = make_multi_Gaussian_HMM(0.6, 0.4, mu_2, mu_3, sigma_0, sigma_0)
+  EMstates = States(EMlearner, x)
+
+  decr = True
+  last = np.inf
+
+  for j in range(0, cnt):
+    EMlearner.EM_step(EMstates)
+    NLL = -EMstates.LL()
+    decr = ((last + EPS) >= NLL) 
+    last = NLL
+
+  return decr
+
 def make_Gaussian_HMM(t_1, t_2, m_1, m_2, s_1, s_2):
   K = 2
   A = np.array([[t_1, 1. - t_1], [1. - t_2, t_2]])
@@ -99,6 +137,13 @@ def make_Gaussian_HMM(t_1, t_2, m_1, m_2, s_1, s_2):
   
   return HMM(K, A, pi, D)
 
+def make_multi_Gaussian_HMM(t_1, t_2, m_1, m_2, s_1, s_2):
+  K = 2
+  A = np.array([[t_1, 1. - t_1], [1. - t_2, t_2]])
+  pi = np.array([0.5, 0.5])
+  D = [mnorm([m_1, s_1]), mnorm([m_2, s_2])]
+  
+  return HMM(K, A, pi, D)
 
 def compare_simple(eps):
   """
