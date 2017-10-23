@@ -6,7 +6,7 @@ from scipy.stats import multivariate_normal
 # internal packages
 from Distribution import Distribution
 from Exponential import Exponential
-from Gaussian_impl import _GaussianSuffStats as impl
+from NDGaussian_impl import _NDGaussianSuffStats as impl
 from NormalInverseWishart import NormalInverseWishart
 
 class NDGaussian(Exponential):

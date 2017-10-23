@@ -226,5 +226,5 @@ class VBHMM(object):
       res += str(self.w_A[k].get_natural() + 1.) + "\n"
     res += "  D = "
     for k in range(0, self.K):
-      res += str(self.D[k].prior.get_natural()) + "\n"
+      res += str(self.D[k].prior.get_params()) + "\n"
     return res

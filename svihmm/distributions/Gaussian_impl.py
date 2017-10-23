@@ -8,130 +8,109 @@ class _GaussianSuffStats():
   """
 
   @staticmethod
-  def NIW_normal_to_natural(l):
+  def NICS_normal_to_natural(l):
     """
-    Takes in a list of normal params of NIW (i.e. [mu_0, sigma_0, kappa_0,
+    Takes in a list of normal params of NICS (i.e. [mu_0, sigmasq_0, kappa_0,
       nu_0]) and returns the list of natural parmas
     """
-    # taking this from Dillon Laird's code
-    mu, sigma, kappa, nu = l
-    eta3 = sigma + np.outer(mu, mu)*kappa
-    return [kappa*mu, eta3, kappa, nu + 2 + mu.shape[0]]
+    mu, sigmasq, kappa, nu = l
+    return [kappa*mu, nu*sigmasq + (mu**2)*kappa, kappa, nu]
 
   @staticmethod
-  def NIW_natural_to_normal(l):
+  def NICS_natural_to_normal(l):
     """
     Takes in a list of natural params of NIW (i.e. [e1, e2, e3, e4])
       and returns the list of normal params
     """
     e1, e2, e3, e4 = l
     kappa = e3
+    nu = e4
     mu = e1/kappa
-    sigma = e2 - np.outer(mu, mu)*kappa
-    nu = e4 - 2 - e1.shape[0]
+    sigmasq = (e2 - (mu**2)*kappa)/nu
 
-    return [mu, sigma, kappa, nu]
+    return [mu, sigmasq, kappa, nu]
 
   @staticmethod
-  def get_stats(S, j, a, b, dim):
-    mu_0 = _GaussianSuffStats.__get_mu_0(S, j, a, b, dim)
-    sigma_0 = _GaussianSuffStats.__get_sigma_0(S, j, a, b, dim)
-    kappa_0 = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b, dim)
+  def get_stats(S, j, a, b):
+    mu_0 = _GaussianSuffStats.__get_mu_0(S, j, a, b)
+    sigmasq_0 = _GaussianSuffStats.__get_sigmasq_0(S, j, a, b)
+    kappa_0 = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
     nu_0 = kappa_0
 
-    return _GaussianSuffStats.to_vec([mu_0, sigma_0, kappa_0, nu_0], dim)
+    return _GaussianSuffStats.to_vec([mu_0, sigmasq_0, kappa_0, nu_0])
 
   @staticmethod
-  def to_vec(l, dim):
+  def to_vec(l):
     """
     Converts a list of the form [mu_0, sigma_0, kappa_0, nu_0]
     to a single numpy array. Used by the get expected sufficient
     statistics method.
     """
-    mu_0, sigma_0, kappa_0, nu_0 = l
-
-    L = [x for x in mu_0]
-
-    for i in range(0, dim):
-      for j in range(0, dim):
-        L.append(sigma_0[i][j])
-
-    L.append(kappa_0)
-    L.append(nu_0)
-
-    return np.array(L)
+    return np.array(l)
 
   @staticmethod
-  def to_list(v, dim):
+  def to_list(v):
     """
     Converts a single numpy array to a list of the form
-    [mu_0, sigma_0, kappa_0, nu_0]
+    [mu_0, sigmasq_0, kappa_0, nu_0]
     """
-    idx = 0
-    mu_0 = v[0 : dim]
+    mu_0 = v[0]
+    sigmasq_0 = v[1]
+    kappa_0 = v[2]
+    nu_0 = v[3]
 
-    idx += dim
-
-    sigma_0 = np.zeros((dim, dim))
-    for i in range(0, dim):
-      for j in range(0, dim):
-        sigma_0[i][j] = v[idx]
-        idx += 1
-
-    kappa_0 = v[idx]
-    idx += 1
-    nu_0 = v[idx]
-
-    return [mu_0, sigma_0, kappa_0, nu_0]
+    return [mu_0, sigmasq_0, kappa_0, nu_0]
 
   @staticmethod
-  def __get_mu_0(S, j, a, b, dim):
+  def __get_mu_0(S, j, a, b):
     obs = S.data[0][a : (b + 1)]
     L = b - a + 1  # length of this subsequence
     gammas = np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]])
 
-    res = np.zeros(dim)
+    res = 0.
     for t in range(0, L):
       res += gammas[t]*obs[t]
 
-    return res
+    return res/_GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
 
   @staticmethod
-  def __get_sigma_0(S, j, a, b, dim):
+  def __get_sigmasq_0(S, j, a, b):
     obs = S.data[0][a : (b + 1)]  
     L = b - a + 1  # length of this subsequence
     gammas = np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]])
 
-    mu_0 = _GaussianSuffStats.__get_mu_0(S, j, a, b, dim)
+    kappa = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
 
-    res = np.zeros((dim, dim))
+    mu_0 = _GaussianSuffStats.__get_mu_0(S, j, a, b)
+
+    res = 0.
     for t in range(0, L):
-      res += gammas[t]*(np.outer(obs[t] - mu_0, obs[t] - mu_0))
+      res += gammas[t]*((obs[t] - mu_0)**2)
 
-    return res
+    return res/kappa
 
   @staticmethod
-  def __get_kappa_or_nu_0(S, j, a, b, dim):
+  def __get_kappa_or_nu_0(S, j, a, b):
     return np.sum(np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]]))
 
   @staticmethod
-  def maximize_likelihood_helper(S, j, a, b, dim):
+  def maximize_likelihood_helper(S, j, a, b):
     """
-    Returns [mu, gamma] which maximize the likelihood of it being
+    Returns [mu, sigma] which maximize the likelihood of it being
     the jth hidden state's emitter for time interval [a, b]
     """
-    kappa = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b, dim)
+    kappa = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
   
-    mu = _GaussianSuffStats.__get_mu_0(S, j, a, b, dim)/kappa
+    mu = _GaussianSuffStats.__get_mu_0(S, j, a, b)/kappa
 
     obs = S.data[0][a : (b + 1)]
     L = b - a + 1  # length of this subsequence
     gammas = np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]])
   
-    sigma = np.zeros((dim, dim))
+    sigmasq = 0.
     for t in range(0, L):
-      sigma += gammas[t]*(np.outer(obs[t] - mu, obs[t] - mu))
+      sigmasq += gammas[t]*(np.outer(obs[t] - mu, obs[t] - mu))
   
-    sigma /= kappa
+    sigmasq /= kappa
   
-    return [mu, sigma]
+    return [mu, sigmasq**(0.5)]

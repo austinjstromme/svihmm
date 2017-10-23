@@ -11,6 +11,7 @@ from svihmm.distributions.Dirichlet import Dirichlet
 from svihmm.distributions.Gaussian import Gaussian as norm
 from svihmm.distributions.NDGaussian import NDGaussian as mnorm
 from svihmm.distributions.NormalInverseWishart import NormalInverseWishart as niw
+from svihmm.distributions.NormalInverseChiSquared import NormalInverseChiSquared as nics
 from svihmm.models.HMM import HMM
 from svihmm.models.States import States
 from svihmm.models.VBHMM import VBHMM
@@ -83,9 +84,9 @@ def elbo_increase_Gaussian():
   Run VB on a VBHMM; ensure that elbo is always increasing
   """
   M_true = make_Gaussian_HMM(0.9, 0.1, 0., 10., 1., 1.)
-  num_steps = 2  # controls length of observation sequences
+  num_steps = 3  # controls length of observation sequences
   N = 1  # number of observation sequences
-  cnt = 100 # number of EM steps
+  cnt = 5 # number of EM steps
 
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
@@ -265,11 +266,11 @@ def make_Gaussian_VBHMM():
   u_pi = Dirichlet(np.array([2., 2.]))
   # hyperparams for the emissions:
   # centered around 0, sigma = 1
-  suff_stats_one = [np.array([0.]), np.array([[1.]]), 1., 1.]
+  suff_stats_one = [0., 2., 2., 2.]
 
   # centered around 5, sigma = 1
-  suff_stats_two = [np.array([5.]), np.array([[1.]]), 1., 1.]
-  u_D = [niw(suff_stats_one), niw(suff_stats_two)]
+  suff_stats_two = [10., 2., 2., 2.]
+  u_D = [nics(suff_stats_one), nics(suff_stats_two)]
   D = [norm([0., 1.]), norm([0., 1.])]
   return VBHMM(K, u_A, u_pi, u_D, D)
 

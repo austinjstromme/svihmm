@@ -9,6 +9,7 @@ import numpy as np
 import context
 import Gaussian_impl as impl
 from NormalInverseWishart import NormalInverseWishart
+from NormalInverseChiSquared import NormalInverseChiSquared
 from Distribution import Distribution
 from Exponential import Exponential
 import utils.LogMatrixUtil as lm
@@ -36,8 +37,8 @@ class Gaussian(Exponential):
     self.sigma = params[1]
 
     if prior == None:
-      l = [np.zeros(1), np.ones((1,1)), 1., 1.]
-      prior = NormalInverseWishart(l)
+      l = [0., 1., 2., 2.]
+      prior = NormalInverseChiSquared(l)
 
   def gen_sample(self):
     """
@@ -70,14 +71,12 @@ class Gaussian(Exponential):
     NOTE: The returned distribution may only implement
     distribution.py
     """
-    # TODO: follow Bishop - change this to return a general
-      # distribution you can just get mass on
-    mu, sigma, kappa, nu = self.prior.get_params()
+    mu, sigmasq, kappa, nu = self.prior.get_params()
 
-    lambduh = self.prior.lambduh_tilde()
+    print("params = " + str(self.prior.get_params()))
 
-    mass = lambda x : ((lambduh**0.5)*np.exp(-0.5/kappa - 0.5*nu*
-      ((x - mu[0])**2)/(sigma[0][0]))*((2*np.pi)**(-0.5)))
+    mass = lambda x : np.exp(-0.5/kappa - 0.5*nu*
+      ((x - mu)**2)/sigmasq)*((2*np.pi*sigmasq)**(-0.5))
 
     return Distribution(mass)
 
@@ -88,8 +87,9 @@ class Gaussian(Exponential):
     [a,b] according to a given states object; assums this dist is the one
     corresponding to the jth hidden state.
     """
-    res = impl._GaussianSuffStats.get_stats(S, j, a, b, 1)
-    print("res == " + str(res))
+    res = impl._GaussianSuffStats.get_stats(S, j, a, b)
+
+    print("local suff stats = " + str(res))
 
     return res
 
