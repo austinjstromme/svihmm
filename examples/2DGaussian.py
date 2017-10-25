@@ -1,8 +1,7 @@
 """
 We learn a HMM with 2 hidden states each with 2D Gaussian emissions.
 """
-#TODO: make this easier to understand, also make the demo plot the difference
-# of buffer size
+#TODO: make this easier to understand
 
 # import numpy and svihmm
 import numpy as np
@@ -76,7 +75,7 @@ def main():
   # create the HMM which will make our synthetic data
   HMM_true = make_HMM()
   # number of observations to generate
-  obs_sequence_length = 1000
+  obs_sequence_length = 10000
   # generate the data
   data = [HMM_true.gen_obs(obs_sequence_length)]
 
