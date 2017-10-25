@@ -22,7 +22,9 @@ class NormalInverseWishart(Exponential):
     """
     Initializes the distribution with given parameters and prior.
 
-    Assumes params is of the form [mu_0, sigma_0, kappa_0, nu_0]
+    Args:
+      params: [mu_0, sigma_0, kappa_0, nu_0]
+      prior: not implemented yet
     """
     self.dim = params[0].shape[0]
     self.w = _NDGaussianSuffStats.to_vec(params, self.dim)
@@ -33,12 +35,18 @@ class NormalInverseWishart(Exponential):
   def gen_sample(self):
     """
     Generates a sample from this distribution.
+
+    Returns:
+      x: a sample from this.
     """
     raise NotImplementedError()
 
   def get_natural(self):
     """
-    Returns the vector of natural parameters.
+    Returns the natural parameters of this distribution.
+
+    Returns:
+      w: np.array of length L, natural parameters for this.
     """
     normal_params = _NDGaussianSuffStats.to_list(self.w, self.dim)
     natural_params = _NDGaussianSuffStats.NIW_normal_to_natural(normal_params)
@@ -46,7 +54,10 @@ class NormalInverseWishart(Exponential):
 
   def set_natural(self, w):
     """
-    Sets the vector of natural parameters.
+    Updates the parameters so the natural parameters become w.
+
+    Args:
+      w: np.array of length L of new natural parameters
     """
     natural_params = _NDGaussianSuffStats.to_list(w, self.dim)
     normal_params = _NDGaussianSuffStats.NIW_natural_to_normal(natural_params)
@@ -54,7 +65,10 @@ class NormalInverseWishart(Exponential):
 
   def get_params(self):
     """
-    Returns a list of [mu_0, sigma_0, kappa_0, nu_0]
+    Returns the normal parameters.
+
+    Return:
+      l: [mu_0, sigma_0, kappa_0, nu_0]
     """
     return _NDGaussianSuffStats.to_list(self.w, self.dim)
 
@@ -62,6 +76,12 @@ class NormalInverseWishart(Exponential):
     """
     Generates the log expected distribution according to the
     current prior.
+
+    Returns:
+      p: a distribution such that p(x) = exp(E[ln(q(x))]) where the expectation
+      is over the distribution on q via the prior.
+
+    NOTE: the returned distribution may only implement Distribution.py.
     """
     raise NotImplementedError("NIWs have no prior implemented")
 
@@ -70,13 +90,23 @@ class NormalInverseWishart(Exponential):
     Returns the vector of the expected sufficient statistics from
     a given states object; assume this dist is the one corresponding to
     the jth hidden state.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
+
+    Returns:
+      w: a np.array of length L where is the number of parameters of the prior.
     """
     raise NotImplementedError()
 
   def KL_div(self, other):
     """
     Computes the KL divergence between self and other; i.e.
-    KL(other || self).
+      KL(other || self).
+
+    Returns:
+      x: KL(other || self).
     """
     mu_0, sigma_0, kappa_0, nu_0 = self.get_params()
     mu_k, sigma_k, kappa_k, nu_k = other.get_params()
@@ -84,15 +114,6 @@ class NormalInverseWishart(Exponential):
     lambduh = other.lambduh_tilde()
 
     lambduh_k = np.linalg.inv(sigma_k)
-
-    #res = self.dim*0.5*np.log(kappa_0/kappa_k) \
-    #    - self.dim*(kappa_0/kappa_k - 0.5) \
-    #    - kappa_0*nu_k*((mu_k - mu_0).transpose().dot(
-    #        lambduh_k.dot(mu_k - mu_0))).sum() \
-    #    + (nu_0 - self.dim - 1)*0.5*np.log(lambduh) \
-    #    - 0.5*nu_k*(np.trace(sigma_0.dot(lambduh_k))) \
-    #    + other.inv_wishart_entropy() \
-    #    + self.inv_wishart_log_partition()
 
     res = -0.5*(np.log(lambduh) + self.dim*(np.log(kappa_k/(2*np.pi))
       - 1)) + other.inv_wishart_entropy() \
@@ -107,9 +128,11 @@ class NormalInverseWishart(Exponential):
 
   def inv_wishart_log_partition(self):
     """
-    Returns the log partition function of self's inverse wishart.
+    Log partition function of self's Inverse-Chi-Squared distribution.
+
+    Returns:
+      x: log partition of self's Inverse-Chi-Squared distribution.
     """
-    #TODO: verify correctness. Following pybasicbayes here
     mu, sigma, kappa, nu = self.get_params()
     D = self.dim
     return -(nu*0.5*np.log(np.linalg.det(sigma))
@@ -118,9 +141,11 @@ class NormalInverseWishart(Exponential):
 
   def inv_wishart_entropy(self):
     """
-    Returns the entropy of self's inverse wishart.
+    Entropy of self's Inverse-Chi-Squared distribution.
+
+    Returns:
+      x: entropy of self's Inverse-Chi-Squared distribution.
     """
-    #TODO: verify correctness. Following pybasicbayes here
     mu, sigma, kappa, nu = self.get_params()
     D = self.dim
     
@@ -130,7 +155,10 @@ class NormalInverseWishart(Exponential):
 
   def lambduh_tilde(self):
     """
-    Returns lambduh tilde; see Bishop 10.65
+    Computes lambduh tilde; see Bishop 10.65.
+
+    Returns:
+      x: lambduh_tilde
     """
     mu, sigma, kappa, nu = self.get_params()
     D = self.dim
@@ -144,6 +172,10 @@ class NormalInverseWishart(Exponential):
     """
     Updates the parameters of this distribution to maximize the likelihood
     of it being the jth hidden state's emitter.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
     """
     raise NotImplementedError()
 

@@ -10,8 +10,13 @@ class _NDGaussianSuffStats():
   @staticmethod
   def NIW_normal_to_natural(l):
     """
-    Takes in a list of normal params of NIW (i.e. [mu_0, sigma_0, kappa_0,
-      nu_0]) and returns the list of natural parmas
+    Converts from normal parameters to natural parameters.
+
+    Args:
+      l: [mu_0, sigma_0, kappa_0, nu_0].
+
+    Returns:
+      r: list of corresponding natural parameters.
     """
     # taking this from Dillon Laird's code
     mu, sigma, kappa, nu = l
@@ -21,8 +26,13 @@ class _NDGaussianSuffStats():
   @staticmethod
   def NIW_natural_to_normal(l):
     """
-    Takes in a list of natural params of NIW (i.e. [e1, e2, e3, e4])
-      and returns the list of normal params
+    Converts from natural parameters to normal parameters.
+
+    Args:
+      l: list of natural parameters.
+
+    Returns:
+      r: [mu_0, sigma_0, kappa_0, nu_0].
     """
     e1, e2, e3, e4 = l
     kappa = e3
@@ -117,8 +127,17 @@ class _NDGaussianSuffStats():
   @staticmethod
   def maximize_likelihood_helper(S, j, a, b, dim):
     """
-    Returns [mu, gamma] which maximize the likelihood of it being
-    the jth hidden state's emitter for time interval [a, b]
+    Returns parameters which maximize the likelihood of it being the jth
+    hidden state's emitter for time interval [a,b].
+
+    Args:
+      S: states object.
+      j: hidden state we correspond to
+      a: beginning of subchain
+      b: end of subchain
+
+    Returns:
+      r: [mu, sigma]
     """
     kappa = _NDGaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b, dim)
   

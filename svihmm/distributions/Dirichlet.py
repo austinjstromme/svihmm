@@ -33,8 +33,21 @@ class Dirichlet(Exponential):
   def gen_sample(self):
     """
     Generates a single sample.
+
+    Returns:
+      x: a sample from this.
     """
+    # TODO: implement this
     raise NotImplementedError()
+
+  def get_natural(self):
+    """
+    Returns the natural parameters of this Dirichlet.
+
+    Returns:
+      w: np.array of length L, natural parameters for this.
+    """
+    return self.params
 
   def set_natural(self, w):
     """
@@ -45,24 +58,13 @@ class Dirichlet(Exponential):
     """
     self.params = w
 
-
-  def get_natural(self):
-    """
-    Returns the natural parameters of this Dirichlet.
-    """
-    return self.params
-
-  def maximize_likelihood(self, S, j):
-    """
-    Updates the parameters of this distribution to maximize the likelihood
-    of it being the jth hidden state's emitter.
-    """
-    raise NotImplementedError()
-
   def KL_div(self, other):
     """
     Computes the KL divergence between self and other; i.e.
-      KL(other || self)
+      KL(other || self).
+
+    Returns:
+      x: KL(other || self).
     """
     alo = other.get_natural() + 1.
     als = self.get_natural() + 1.
@@ -88,5 +90,6 @@ class Dirichlet(Exponential):
     Returns:
       p(x)
     """
+    #TODO: implement this
     raise NotImplementedError()
 

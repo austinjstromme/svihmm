@@ -22,7 +22,9 @@ class NormalInverseChiSquared(Exponential):
     """
     Initializes the distribution with given parameters and prior.
 
-    Assumes params is of the form [mu_0, sigmasq_0, kappa_0, nu_0]
+    Args:
+      params: [mu_0, sigmasq_0, kappa_0, nu_0]
+      prior: not implemented yet
     """
     self.w = _GaussianSuffStats.to_vec(params)
 
@@ -32,12 +34,18 @@ class NormalInverseChiSquared(Exponential):
   def gen_sample(self):
     """
     Generates a sample from this distribution.
+
+    Returns:
+      x: a sample from this.
     """
     raise NotImplementedError()
 
   def get_natural(self):
     """
-    Returns the vector of natural parameters.
+    Returns the natural parameters of this distribution.
+
+    Returns:
+      w: np.array of length L, natural parameters for this.
     """
     normal_params = _GaussianSuffStats.to_list(self.w)
     natural_params = _GaussianSuffStats.NICS_normal_to_natural(normal_params)
@@ -45,7 +53,10 @@ class NormalInverseChiSquared(Exponential):
 
   def set_natural(self, w):
     """
-    Sets the vector of natural parameters.
+    Updates the parameters so the natural parameters become w.
+
+    Args:
+      w: np.array of length L of new natural parameters
     """
     natural_params = _GaussianSuffStats.to_list(w)
     normal_params = _GaussianSuffStats.NICS_natural_to_normal(natural_params)
@@ -61,6 +72,12 @@ class NormalInverseChiSquared(Exponential):
     """
     Generates the log expected distribution according to the
     current prior.
+
+    Returns:
+      p: a distribution such that p(x) = exp(E[ln(q(x))]) where the expectation
+      is over the distribution on q via the prior.
+
+    NOTE: the returned distribution may only implement Distribution.py.
     """
     raise NotImplementedError("NIWs have no prior implemented")
 
@@ -69,6 +86,13 @@ class NormalInverseChiSquared(Exponential):
     Returns the vector of the expected sufficient statistics from
     a given states object; assume this dist is the one corresponding to
     the jth hidden state.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
+
+    Returns:
+      w: a np.array of length L where is the number of parameters of the prior.
     """
     raise NotImplementedError()
 
@@ -108,8 +132,10 @@ class NormalInverseChiSquared(Exponential):
 
   def inv_chi_squared_log_partition(self):
     """
-    Returns the log partition function of self's inverse (scaled) chi squared
-    distribution.
+    Log partition function of self's Inverse-Chi-Squared distribution.
+
+    Returns:
+      x: log partition of self's Inverse-Chi-Squared distribution.
     """
     mu, sigmasq, kappa, nu = self.get_params()
 
@@ -117,7 +143,10 @@ class NormalInverseChiSquared(Exponential):
 
   def inv_chi_squared_entropy(self):
     """
-    Returns the entropy of self's inverse (scaled) chi squared distribution.
+    Entropy of self's Inverse-Chi-Squared distribution.
+
+    Returns:
+      x: entropy of self's Inverse-Chi-Squared distribution.
     """
     mu, sigmasq, kappa, nu = self.get_params()
 
@@ -128,6 +157,10 @@ class NormalInverseChiSquared(Exponential):
     """
     Updates the parameters of this distribution to maximize the likelihood
     of it being the jth hidden state's emitter.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
     """
     raise NotImplementedError()
 

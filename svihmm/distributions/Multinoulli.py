@@ -50,7 +50,14 @@ class Multinoulli(Exponential):
 
   def gen_log_expected(self):
     """
-    Returns log expected distribution according to self.prior.
+    Generates the log expected distribution according to the
+    current prior.
+
+    Returns:
+      p: a distribution such that p(x) = exp(E[ln(q(x))]) where the expectation
+      is over the distribution on q via the prior.
+
+    NOTE: the returned distribution may only implement Distribution.py.
     """
     w = self.prior.get_natural()
     temp = dg(np.sum(w))
@@ -59,7 +66,10 @@ class Multinoulli(Exponential):
 
   def gen_sample(self):
     """
-    Generates a single sample.
+    Generates a sample from this distribution.
+
+    Returns:
+      x: a sample from this.
     """
     gen = nprand.multinomial(1, self.params)
     for l in range(0, self.L):
@@ -71,7 +81,10 @@ class Multinoulli(Exponential):
 
   def get_natural(self):
     """
-    Returns the natural parameters of this Multinoulli.
+    Returns the natural parameters of this distribution.
+
+    Returns:
+      w: np.array of length L, natural parameters for this.
     """
     return np.array([np.log(self.params[k]/self.params[self.L - 1])
         for k in range(0, self.L)])
@@ -89,56 +102,44 @@ class Multinoulli(Exponential):
     """
     Updates the parameters of this distribution to maximize the likelihood
     of it being the jth hidden state's emitter.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
     """
     w = self.get_expected_suff(S, j)
     self.set_natural(np.log(w))
-
-  def update_params(self, x, gamma_data, k):
-    """
-    Updates the parameters via EM.
-
-    Args:
-      x: a list of N observation sequences
-      gamma_data: a list of the smoothed posterior marginals
-        for each observation sequence. Thus gamma_data[i][t][k]
-        is the probabiltiy that the ith observation sequence at
-        time t was in state k. IN LOG DOMAIN.
-      k: the state this distribution corresponds to
-
-    Effects:
-      params: updates the parameters via EM
-    """
-    state_count = self.state_count(gamma_data, k)
-    obs_count = self.obs_count(x, gamma_data, k)
-    self.params = np.exp(obs_count)/np.exp(state_count)
 
   def get_expected_suff(self, S, j):
     """
     Returns the vector of the expected sufficient statistics from
     a given states object; assume this dist is the one corresponding to
     the jth hidden state.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
+
+    Returns:
+      w: a np.array of length L where is the number of parameters of the prior.
     """
     return np.exp(self.obs_count(S.data, S.gamma, j))
 
   def get_expected_local_suff(self, S, j, a, b):
     """
     Returns the vector of expected sufficient statistics from subchain
-    [a,b] according to a given states object; assums this dist is the one
-    corresponding to the jth hidden state.
+    [a,b].
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
+      a: state of the subchain.
+      b: end of the subchain.
+
+    Returns:
+      w: vector of expected sufficient statistics
     """
     return np.exp(self.local_obs_count(S.data, S.gamma, j, a, b))
-
-  def state_count(self, gamma_data, j):
-    """
-    returns the log of expected number of times an observation
-    was in state j
-    """
-    N = len(gamma_data)
-    res = []
-    for i in range(0,N):
-      res += [gamma_data[i][t][j] for t in 
-                xrange(0,len(gamma_data[i]))]
-    return logsumexp(res)
 
   def local_obs_count(self, x, gamma_data, j, a, b):
     """

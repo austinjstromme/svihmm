@@ -15,17 +15,18 @@ class NDGaussian(Exponential):
   N > 1.
 
   Attributes:
-    mu - the mean; an N dimensional np.array
-    sigma - the covariance matrix; an NxN np.array 
-    prior - the prior Normal Inverse Wishart distribution
+    mu: the mean; an N dimensional np.array
+    sigma: the covariance matrix; an NxN np.array 
+    prior: the prior Normal Inverse Wishart distribution
   """
 
   def __init__(self, params, prior=None):
     """
     Initializes the distribution with given parameters and prior.
 
-    Assume params is of the form [mu, sigma]. If prior is not specified
-    initializes to a NIW with [mu_0, sigma_0, kappa_0, nu_0] = [0, I, 1, 1]
+    Args:
+      params: [mu, sigma]
+      prior: NIW, if not specified is initialize to [0, I, 1, 1]
     """
     if ((len(params) != 2) or (len(params[0].shape) != 1)
       or (len(params[1].shape) != 2)
@@ -46,22 +47,28 @@ class NDGaussian(Exponential):
   def gen_sample(self):
     """
     Generates a sample from this distribution.
+
+    Returns:
+      x: a sample from this.
     """
     return nprand.multivariate_normal(self.mu, self.sigma)
 
   def get_natural(self):
     """
-    Returns a list of the natural parameters, namely [sigma^(-1)*mu,
-      -sigma^(-1)/2].
+    Returns the natural parameters of this distribution.
+
+    Returns:
+      l: [sigma^{-1} mu, -0.5 sigma^{-1}]
     """
     sigmainv = np.linalg.inv(self.sigma)
     return [np.dot(sigmainv, self.mu), (-0.5)*sigmainv]
 
   def set_natural(self, w):
     """
-    Sets the vector of natural parameters. Expects that w is a
-    list of the form [x, A] where x is a N dimensional numpy
-    array and A is an NxN numpy array.
+    Updates the parameters so the natural parameters become w.
+
+    Args:
+      w: [sigma^{-1} mu, -0.5 sigma^{-1}]
     """
     if ((len(params) != 2) or (len(params[0].shape) != 1)
       or (len(params[1].shape) != 2)
@@ -77,6 +84,12 @@ class NDGaussian(Exponential):
     """
     Generates the log expected distribution according to the
     current prior.
+
+    Returns:
+      p: a distribution such that p(x) = exp(E[ln(q(x))]) where the expectation
+      is over the distribution on q via the prior.
+
+    NOTE: the returned distribution may only implement Distribution.py.
     """
     mu, sigma, kappa, nu = self.prior.get_params()
 
@@ -92,8 +105,16 @@ class NDGaussian(Exponential):
   def get_expected_local_suff(self, S, j, a, b):
     """
     Returns the vector of expected sufficient statistics from subchain
-    [a,b] according to a given states object; assums this dist is the one
-    corresponding to the jth hidden state. IN NATURAL PARAM FORM.
+    [a,b].
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
+      a: state of the subchain.
+      b: end of the subchain.
+
+    Returns:
+      w: vector of expected sufficient statistics
     """
     l = impl.to_list(impl.get_stats(S, j, a, b, self.mu.shape[0]),
       self.mu.shape[0])
@@ -102,8 +123,15 @@ class NDGaussian(Exponential):
   def get_expected_suff(self, S, j):
     """
     Returns the vector of the expected sufficient statistics from
-    a given states object; assumes this dist is the one corresponding to
+    a given states object; assume this dist is the one corresponding to
     the jth hidden state.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
+
+    Returns:
+      w: a np.array of length L where is the number of parameters of the prior.
     """
     T = len(S.data[0])
 
@@ -113,6 +141,10 @@ class NDGaussian(Exponential):
     """
     Updates the parameters of this distribution to maximize the likelihood
     of it being the jth hidden state's emitter.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
     """
     T = len(S.data[0])
     dim = self.mu.shape[0]

@@ -10,8 +10,13 @@ class _GaussianSuffStats():
   @staticmethod
   def NICS_normal_to_natural(l):
     """
-    Takes in a list of normal params of NICS (i.e. [mu_0, sigmasq_0, kappa_0,
-      nu_0]) and returns the list of natural parmas
+    Converts from normal parameters to natural parameters.
+
+    Args:
+      l: [mu_0, sigmasq_0, kappa_0, nu_0].
+
+    Returns:
+      r: list of corresponding natural parameters.
     """
     mu, sigmasq, kappa, nu = l
     return [kappa*mu, nu*sigmasq + (mu**2)*kappa, kappa, nu]
@@ -19,8 +24,13 @@ class _GaussianSuffStats():
   @staticmethod
   def NICS_natural_to_normal(l):
     """
-    Takes in a list of natural params of NIW (i.e. [e1, e2, e3, e4])
-      and returns the list of normal params
+    Converts from natural parameters to normal parameters.
+
+    Args:
+      l: list of natural parameters.
+
+    Returns:
+      r: [mu_0, sigmasq_0, kappa_0, nu_0].
     """
     e1, e2, e3, e4 = l
     kappa = e3
@@ -96,12 +106,21 @@ class _GaussianSuffStats():
   @staticmethod
   def maximize_likelihood_helper(S, j, a, b):
     """
-    Returns [mu, sigma] which maximize the likelihood of it being
-    the jth hidden state's emitter for time interval [a, b]
+    Returns parameters which maximize the likelihood of it being the jth
+    hidden state's emitter for time interval [a,b].
+
+    Args:
+      S: states object.
+      j: hidden state we correspond to
+      a: beginning of subchain
+      b: end of subchain
+
+    Returns:
+      r: [mu, sigma]
     """
     kappa = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
   
-    mu = _GaussianSuffStats.__get_mu_0(S, j, a, b)/kappa
+    mu = _GaussianSuffStats.__get_mu_0(S, j, a, b)
 
     obs = S.data[0][a : (b + 1)]
     L = b - a + 1  # length of this subsequence
@@ -109,7 +128,7 @@ class _GaussianSuffStats():
   
     sigmasq = 0.
     for t in range(0, L):
-      sigmasq += gammas[t]*(np.outer(obs[t] - mu, obs[t] - mu))
+      sigmasq += gammas[t]*((obs[t] - mu)**2.)
   
     sigmasq /= kappa
   
