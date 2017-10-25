@@ -55,33 +55,50 @@ def make_HMM():
   
   return HMM(K, A, pi, D)
 
-def main():
-  # create the HMM which will make our synthetic data
-  HMM_true = make_HMM()
-  # number of observations to generate
-  obs_sequence_length = 100000
-  # generate the data
-  data = [HMM_true.gen_obs(obs_sequence_length)]
+def run_SVI(buf, L, rho, data):
+  elbos = []
 
   # make our learner and initialize its local belief probabilities
   learner = make_VBHMM()
   states = States(learner.gen_M(), data)
 
-  # run 10 steps of SVI with buf = 5, L = 20, learning rate rho = 0.01
-  for j in range(10):
-    learner.SVI_step(states, 5, 20, 0.01)
+  # do a few SVI steps so it's easier to see differences in the plots
+  for j in range(5):
+    learner.SVI_step(states, buf, L, rho)
 
-  elbos = []
-  # now run 10 more steps, but save the elbo (otherwise the plot is unhelpful)
   for j in range(10):
-    learner.SVI_step(states, 5, 20, 0.01)
+    learner.SVI_step(states, buf, L, rho)
     elbos.append(learner.elbo(states))
 
-  plt.plot(elbos)
-  plt.xlabel("SVI step - 10")
+  return elbos
+
+def main():
+  # create the HMM which will make our synthetic data
+  HMM_true = make_HMM()
+  # number of observations to generate
+  obs_sequence_length = 1000
+  # generate the data
+  data = [HMM_true.gen_obs(obs_sequence_length)]
+
+  # set subchain length, bufs, and learning rate
+  L = 30
+  bufs = [5, 10, 50]
+  rho = 0.01
+
+  elbos = []
+  for buf in bufs:
+    elbos.append(run_SVI(buf, L, rho, data))
+
+  colos = ['r', 'b', 'g']
+  for i in range(len(bufs)):
+    plt.plot(elbos[i], label=('buf = ' + str(bufs[i])), color=colos[i])
+
+  plt.xlabel("SVI step")
   plt.ylabel("ELBO value")
 
   plt.title("SVI demo, buf = 5, L = 20, rho = 0.01")
+
+  plt.legend()
 
   plt.show()
 
