@@ -10,11 +10,13 @@ import utils.LogMatrixUtil as lm
 
 class HMM(object):
   """
-  A HMM is an abstraction of a Hidden Markov Model. In this abstraction
-  each HMM has several parameters associated to it, including the number
-  of hidden states K, the transition matrix A from hidden states to hidden
-  states, an initial distribution pi, and a list of distributions D. Note
-  that all probabilities are in the log domain.
+  A HMM is an abstraction of a Hidden Markov Model.
+
+  Attributes:
+    K: number of hidden states.
+    A: transition matrix IN LOG DOMAIN.
+    pi: start vector IN LOG DOMAIN.
+    D: list of K distributions.
   """
 
   def __init__(self, K, A, pi, D):
@@ -36,17 +38,22 @@ class HMM(object):
 
   def get_params(self):
     """
-    Returns the parameters K, A, pi, and D,
-    in a list: [K, A, pi, D]; converts probabilities
-    back from log domain.
+    Returns:
+      params: [K, A, pi, D] NOT IN LOG DOMAIN.
     """
     return [self.K, np.exp(self.A), np.exp(self.pi), self.D]
 
   def compare(self, M, local=False):
     """
-    Returns a real number representing the similarity between this
-    and another HMM M; symmetric operation. If local=True we don't
-    compare the pi vectors. Heuristic for verifying structure learning.
+    Compares this HMM to another; symmetric operation. Heuristic for
+    verifying structure learning.
+
+    Args:
+      M: other HMM to compare to.
+      local: if true, don't compare pi vectors.
+
+    Returns:
+      x: nonnegative real number representing similarity of the two.
     """
     res = 0.
     if not local:
@@ -95,6 +102,9 @@ class HMM(object):
   def update_trans(self, S):
     """
     Updates the transition matrix A.
+
+    Args:
+      S: states object to use for updating.
     """
     A_expect = S.get_trans()
 
@@ -105,19 +115,28 @@ class HMM(object):
   def update_start(self, S):
     """
     Updates the start probability vector pi.
+
+    Args:
+      S: states object to use for updating.
     """
     self.pi = S.get_start() - np.log(len(S.gamma))
 
   def EM(self, S, N):
     """
-    Does N steps of EM with states object S.
+    Args:
+      S: states object.
+      N: number of steps of EM to do.
     """
     for i in range(0, N):
       self.EM_step(S)
 
   def gen_obs(self, n):
     """
-    Generate a list of n observations.
+    Args:
+      n: number of observations to generate.
+
+    Returns:
+      l: list of n observations.
     """
     m = Multinoulli(np.exp(self.pi))
     curr = m.gen_sample()
@@ -129,6 +148,10 @@ class HMM(object):
     return obs
 
   def __str__(self):
+    """
+    Returns:
+      s: string representing this.
+    """
     res = "HMM with K = " + str(self.K) + "\n"
     res += "  A = " + str(np.exp(self.A)) + "\n"
     res += "  pi = " + str(np.exp(self.pi)) + "\n"
@@ -136,4 +159,3 @@ class HMM(object):
     for k in range(0, self.K):
       res += str(self.D[k]) + "\n"
     return res
-

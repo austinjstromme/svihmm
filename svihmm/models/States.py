@@ -53,6 +53,10 @@ class States(object):
     """
     Adds observation sequences x to the data. DOES NOT do any inference
     on the new sequences before returning.
+
+    Args:
+      x: list of N observation sequences; x[i] is a list of length T_i
+      observations.
     """
     for seq in x:
       self.data.append(seq)
@@ -66,14 +70,17 @@ class States(object):
 
   def e_step_sub_chain(self, a, b, buf):
     """
-    Runs forwards-backwards to compute gamma and xi given the current data,
-    but does this on the subchain [a,b] using a buffer of
-    size buf.
+    Runs local forwards-backwards.
+
+    Args:
+      a: start of subchain.
+      b: end of subchain.
+      buf: buffer size for subchain.
     """
     for i in range(0, len(self.data)):
       if b + buf >= len(self.data[i]) or a < 0:
         raise ValueError("faulty parameters for local update interval")
-        #no point in doing anything fancy; just update them all
+        # no point in doing anything fancy; just update them all
         self.e_step_row(i)
       # run FB on this subchain
       self.e_step_row_sub_chain(i, a, b, buf)
@@ -81,7 +88,13 @@ class States(object):
   def e_step_row_sub_chain(self, i, a, b, buf):
     """
     Updates gamma and xi for t in [a,b] for the ith data point by
-    performing a forward-backward pass on [a-buf, b + buf]
+    performing a forward-backward pass on [a-buf, b + buf].
+
+    Args:
+      i: observation sequence index.
+      a: start of subchain.
+      b: end of subchain.
+      buf: buffer size for subchain.
     """
     x = self.data[i][(a - buf) : (b + buf + 1)]
 
@@ -113,6 +126,14 @@ class States(object):
   def backward_alg(self, x, psi):
     """
     Runs the backwards algorithm and returns beta.
+
+    Args:
+      x: observation sequence.
+      psi: local evidence vector; psi[t][k] is the log probability that the
+      kth hidden state emitted x[t] at time t.
+
+    Returns:
+      beta: see forward backward discussion in Murphy, chapter 12.
     """
     beta = [np.zeros(self.M.K)]
     for t in range(len(x) - 2, -1, -1):
@@ -122,7 +143,15 @@ class States(object):
 
   def forward_alg(self, x, psi):
     """
-    Runs the forwards algorithm and returns alpha and the Z values.
+    Runs the backwards algorithm and returns beta.
+
+    Args:
+      x: observation sequence.
+      psi: local evidence vector; psi[t][k] is the log probability that the
+      kth hidden state emitted x[t] at time t.
+
+    Returns:
+      [alpha, Z]: see forward backward discussion in Murphy, chapter 12.
     """
     res = lm.norm(lm.mult(psi[0], self.M.pi))
     alpha = [res[0]]
@@ -136,7 +165,14 @@ class States(object):
 
   def get_local_trans(self, a, b):
     """
-    Returns KxK matrix whose entries are
+    Returns matrix of local transition probabilities.
+
+    Args:
+      a: start of subchain.
+      b: end of subchain.
+
+    Returns:
+      X: the KxK matrix whose entries are
       log(\sum_{t = a}^b exp(xi[0][t][i][j]))
     """
     K = self.M.K
@@ -152,7 +188,10 @@ class States(object):
 
   def get_start(self):
     """
-    Returns vector who entries are
+    Returns matrix of start probabilities.
+
+    Returns:
+      y: the K vector whose entries are
       log( \sum_{n = 1}^N exp(gamma[n][0][k]))
     """
     N = len(self.gamma)
@@ -165,8 +204,11 @@ class States(object):
 
   def get_trans(self):
     """
-    Returns KxK matrix whose entries are
-      log(\sum_{n = 1}^N \sum_{t = 2}^T_n exp(xi[n][t][i][j]))
+    Returns matrix of transition probabilities.
+
+    Returns:
+      X: the KxK matrix whose entries are
+      log(\sum_{t = a}^b exp(xi[0][t][i][j]))
     """
     K = self.M.K
     N = len(self.xi)
@@ -181,7 +223,7 @@ class States(object):
 
   def LL(self):
     """
-    Returns the log likelihood of the current data 
+    Returns log likelihood of current data.
     """
     res = 0.
     for n in range(0, len(self.data)):
@@ -193,4 +235,3 @@ class States(object):
       for t in range(0, len(Z)):
         res += np.log(Z[t])
     return res
-
