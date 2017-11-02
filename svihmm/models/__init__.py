@@ -1,3 +1,5 @@
-from HMM import HMM
-from VBHMM import VBHMM
-from States import States
+from __future__ import absolute_import
+
+from .HMM import *
+from .VBHMM import *
+from .States import *

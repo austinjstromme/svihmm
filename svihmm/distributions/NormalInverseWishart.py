@@ -4,8 +4,8 @@ from scipy.special import digamma as dg
 from scipy.special import gamma as Gamma
 
 # internals
-from Exponential import Exponential
-from NDGaussian_impl import _NDGaussianSuffStats
+from .Exponential import Exponential
+from .NDGaussian_impl import _NDGaussianSuffStats
 
 class NormalInverseWishart(Exponential):
   """
@@ -115,16 +115,18 @@ class NormalInverseWishart(Exponential):
 
     lambduh_k = np.linalg.inv(sigma_k)
 
-    res = -0.5*(np.log(lambduh) + self.dim*(np.log(kappa_k/(2*np.pi))
-      - 1)) + other.inv_wishart_entropy() \
-      + 0.5*(self.dim*np.log(kappa_0/(2*np.pi)) + np.log(lambduh) \
+    # following Matt Johnson's code in pybasicbayes here
+
+    q_entropy = -0.5*(np.log(lambduh) + self.dim*(np.log(kappa_k/(2*np.pi))
+      - 1)) + other.inv_wishart_entropy()
+    p_avgengy = 0.5*(self.dim*np.log(kappa_0/(2*np.pi)) + np.log(lambduh) \
       - self.dim*kappa_0/kappa_k - kappa_0*nu_k*((mu_k
       - mu_0).transpose().dot(lambduh_k.dot(mu_k - mu_0))).sum()) \
       + self.inv_wishart_log_partition() \
-      + (nu_0 - self.dim - 1)*0.5*np.log(lambduh) - 0.5*nu_k \
+      + (nu_0 - self.dim - 1)/(2.*np.log(lambduh)) - 0.5*nu_k \
       *np.trace(lambduh_k.dot(sigma_0))
 
-    return res
+    return -(p_avgengy + q_entropy)
 
   def inv_wishart_log_partition(self):
     """
@@ -136,7 +138,7 @@ class NormalInverseWishart(Exponential):
     mu, sigma, kappa, nu = self.get_params()
     D = self.dim
     return -(nu*0.5*np.log(np.linalg.det(sigma))
-      - nu*D*0.5*np.log(2) - D*(D - 1.)*0.25*np.log(np.pi)
+      - nu*D/2.*np.log(2) - D*(D - 1.)/4.*np.log(np.pi)
       - sum([np.log(abs(Gamma(0.5*(nu + 1. - i)))) for i in range(1, D + 1)]))
 
   def inv_wishart_entropy(self):
@@ -150,7 +152,7 @@ class NormalInverseWishart(Exponential):
     D = self.dim
     
     log_lambduh = np.log(self.lambduh_tilde())
-    return (self.inv_wishart_log_partition() - (nu - D - 1)*0.5*log_lambduh
+    return (self.inv_wishart_log_partition() - (nu - D - 1)/2.*log_lambduh
       + nu*D*0.5)
 
   def lambduh_tilde(self):

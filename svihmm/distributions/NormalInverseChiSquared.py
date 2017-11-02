@@ -4,8 +4,8 @@ from scipy.special import digamma as dg
 from scipy.special import gamma as Gamma
 
 # internals
-from Exponential import Exponential
-from Gaussian_impl import _GaussianSuffStats
+from .Exponential import Exponential
+from .Gaussian_impl import _GaussianSuffStats
 
 class NormalInverseChiSquared(Exponential):
   """
@@ -104,6 +104,9 @@ class NormalInverseChiSquared(Exponential):
     mu_0, sigmasq_0, kappa_0, nu_0 = self.get_params()
     mu_k, sigmasq_k, kappa_k, nu_k = other.get_params()
 
+    #print("u_D params = " + str(self.get_params()))
+    #print("D params = " + str(other.get_params()))
+
     # we use the fact that KL div between products of normals N_1, N_2 and
     # inverse chi squared distributions s_1, s_2, is equal to
     #
@@ -111,8 +114,8 @@ class NormalInverseChiSquared(Exponential):
     #                          + KL(s_2 \| s_1)
     # 
     # We compute the first term:
-    expected_KL_between_normals = 0.5*(np.log(kappa_k/kappa_0) + kappa_k/kappa_0
-      + ((mu_k - mu_0)**2)/sigmasq_k - 0.5*kappa_k/sigmasq_k)
+    expected_KL_between_normals = 0.5*np.log(kappa_k/kappa_0) + 0.5*kappa_0/kappa_k \
+      - 0.5 + 0.5*kappa_0*((mu_k - mu_0)**2)/sigmasq_k
 
     # For the second term we use the fact that the KL divergence between two
     # members of the same exponential family which has log partition g
@@ -124,11 +127,17 @@ class NormalInverseChiSquared(Exponential):
       # and Nock
 
     KL_between_inv_chi_sq = self.inv_chi_squared_log_partition()\
-       - other.inv_chi_squared_log_partition() \
-       - (nu_0 - nu_k)*(dg(nu_k/2) - 0.5*np.log(sigmasq_k*nu_k*0.5) - 0.5) \
-       + (sigmasq_0 - sigmasq_k)*nu_k/(2*sigmasq_k)
+        - other.inv_chi_squared_log_partition() \
+        + 0.5*(nu_0*sigmasq_0 - nu_k*sigmasq_k)/sigmasq_k \
+        - 0.5*(nu_0 - nu_k)*(dg(nu_k/2) - np.log(nu_k*sigmasq_k*0.5))
 
-    return expected_KL_between_normals + KL_between_inv_chi_sq
+    #KL = self.inv_chi_squared_log_partition() \
+    #  - other.inv_chi_squared_log_partition() \
+    #  + 0.5*np.log(kappa_k/kappa_0) \
+    #  + (sigmasq_0 - sigmasq_k) + 0.5*(kappa_0 - kappa_k)/kappa_k \
+    #  + (nu_0 - nu_k)*(0.5*(np.log(sigmasq_k*nu_k/2)) + 0.5 - dg(nu_k/2))
+
+    return (expected_KL_between_normals + KL_between_inv_chi_sq)
 
   def inv_chi_squared_log_partition(self):
     """

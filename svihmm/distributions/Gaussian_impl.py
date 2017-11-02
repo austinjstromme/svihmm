@@ -19,7 +19,7 @@ class _GaussianSuffStats():
       r: list of corresponding natural parameters.
     """
     mu, sigmasq, kappa, nu = l
-    return [kappa*mu, nu*sigmasq + (mu**2)*kappa, kappa, nu]
+    return [kappa*mu, (nu*sigmasq + (mu**2)*kappa)*(-.5), -kappa/2, -nu/2]
 
   @staticmethod
   def NICS_natural_to_normal(l):
@@ -33,11 +33,12 @@ class _GaussianSuffStats():
       r: [mu_0, sigmasq_0, kappa_0, nu_0].
     """
     e1, e2, e3, e4 = l
-    kappa = e3
-    nu = e4
+    kappa = -2.*e3
+    nu = -2.*e4
     mu = e1/kappa
-    sigmasq = (e2 - (mu**2)*kappa)/nu
+    sigmasq = (-2.*e2 - (mu**2)*kappa)/nu
 
+    res = [mu, sigmasq, kappa, nu]
     return [mu, sigmasq, kappa, nu]
 
   @staticmethod
@@ -47,7 +48,8 @@ class _GaussianSuffStats():
     kappa_0 = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
     nu_0 = kappa_0
 
-    return _GaussianSuffStats.to_vec([mu_0, sigmasq_0, kappa_0, nu_0])
+    return _GaussianSuffStats.to_vec([mu_0, -0.5*sigmasq_0, -0.5*kappa_0,
+      -0.5*nu_0])
 
   @staticmethod
   def to_vec(l):
@@ -81,7 +83,7 @@ class _GaussianSuffStats():
     for t in range(0, L):
       res += gammas[t]*obs[t]
 
-    return res/_GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
+    return res
 
   @staticmethod
   def __get_sigmasq_0(S, j, a, b):
@@ -89,15 +91,11 @@ class _GaussianSuffStats():
     L = b - a + 1  # length of this subsequence
     gammas = np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]])
 
-    kappa = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
-
-    mu_0 = _GaussianSuffStats.__get_mu_0(S, j, a, b)
-
     res = 0.
     for t in range(0, L):
-      res += gammas[t]*((obs[t] - mu_0)**2)
+      res += gammas[t]*(obs[t]**2)
 
-    return res/kappa
+    return res
 
   @staticmethod
   def __get_kappa_or_nu_0(S, j, a, b):

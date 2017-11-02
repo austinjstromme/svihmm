@@ -4,11 +4,10 @@ from random import randrange
 import numpy as np
 
 # internals
-import context  # for utils and distributions
-from HMM import HMM
-from distributions.Dirichlet import Dirichlet
-from distributions.Multinoulli import Multinoulli
-import utils.LogMatrixUtil as lm
+from .HMM import HMM
+from ..distributions.Dirichlet import Dirichlet
+from ..distributions.Multinoulli import Multinoulli
+from ..utils import LogMatrixUtil as lm
 
 class VBHMM(object):
   """
@@ -52,7 +51,7 @@ class VBHMM(object):
     self.w_pi = Dirichlet(u_pi.get_natural() + 1.)
     self.D = D
     for k in range(0, K):
-      self.D[k].prior = u_D[k]
+      self.D[k].prior.set_natural(u_D[k].get_natural())
 
   def gen_a_b(self, S, buf, L):
     """
@@ -164,6 +163,10 @@ class VBHMM(object):
       dist = self.D[j]
       expected_suff = dist.get_expected_suff(S, j)
       prior = self.u_D[j].get_natural()
+
+      #print("expected_suff = " + str(expected_suff))
+      #print("prior = " + str(prior))
+      #print("sum = " + str(prior + expected_suff))
       dist.prior.set_natural(expected_suff + prior)
 
     # update pi
@@ -227,9 +230,13 @@ class VBHMM(object):
     """
     res = -self.u_pi.KL_div(self.w_pi)
     for j in range(0, self.K):
-      res -= self.u_A.KL_div(self.w_A[j]) + self.u_D[j].KL_div(self.D[j].prior)
+      res -= self.u_A.KL_div(self.w_A[j])
+      div_j = self.u_D[j].KL_div(self.D[j].prior)
+      #print("KL_div in " + str(j) + "th component = " + str(div_j))
+      res -= div_j
 
     ll = S.LL()
+    #print("                     LL = " + str(ll))
     res += ll
     return res
 

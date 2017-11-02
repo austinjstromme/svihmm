@@ -1,4 +1,4 @@
-from Distribution import Distribution
+from .Distribution import Distribution
 
 class Exponential(Distribution):
 

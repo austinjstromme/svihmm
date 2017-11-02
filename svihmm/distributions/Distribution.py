@@ -1,4 +1,3 @@
-
 class Distribution(object):
   """
   A distribution simply encapsulates a mass function.

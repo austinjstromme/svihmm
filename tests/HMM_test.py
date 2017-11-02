@@ -5,7 +5,6 @@ This file does some basic testing of our EM implementation.
 import numpy as np
 
 # internals
-import context # svihmm
 from svihmm.distributions.Multinoulli import Multinoulli as mn
 from svihmm.distributions.Gaussian import Gaussian as norm
 from svihmm.distributions.NDGaussian import NDGaussian as mnorm

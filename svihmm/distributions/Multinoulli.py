@@ -1,16 +1,13 @@
 # exteneral packages
-import sys
-sys.path.append('../utils')
 from numpy import random as nprand
 from scipy.misc import logsumexp
 from scipy.special import digamma as dg
 import numpy as np
 
 # internals
-from Exponential import Exponential
-from Dirichlet import Dirichlet
-import context
-import utils.LogMatrixUtil as lm
+from .Exponential import Exponential
+from .Dirichlet import Dirichlet
+from ..utils import LogMatrixUtil as lm
 
 class Multinoulli(Exponential):
   """

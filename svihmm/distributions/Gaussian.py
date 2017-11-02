@@ -6,13 +6,12 @@ from scipy.stats import norm
 import numpy as np
 
 # internals
-import context
-import Gaussian_impl as impl
-from NormalInverseWishart import NormalInverseWishart
-from NormalInverseChiSquared import NormalInverseChiSquared
-from Distribution import Distribution
-from Exponential import Exponential
-import utils.LogMatrixUtil as lm
+from . import Gaussian_impl as impl
+from .NormalInverseWishart import NormalInverseWishart
+from .NormalInverseChiSquared import NormalInverseChiSquared
+from .Distribution import Distribution
+from .Exponential import Exponential
+from ..utils import LogMatrixUtil as lm
 
 class Gaussian(Exponential):
   """
@@ -42,6 +41,8 @@ class Gaussian(Exponential):
     if prior == None:
       l = [0., 1., 2., 2.]
       prior = NormalInverseChiSquared(l)
+
+    self.prior = prior
 
   def gen_sample(self):
     """
@@ -86,9 +87,12 @@ class Gaussian(Exponential):
     NOTE: the returned distribution may only implement Distribution.py.
     """
     mu, sigmasq, kappa, nu = self.prior.get_params()
+    print("prior params = " + str(self.prior.get_params()))
 
-    mass = lambda x : np.exp(-0.5/kappa - 0.5*nu*
-      ((x - mu)**2)/sigmasq)*((2*np.pi*sigmasq)**(-0.5))
+    expectation_log_sigmasq = np.exp(dg(nu/2) + np.log(2/sigmasq))
+
+    mass = lambda x : (expectation_log_sigmasq**0.5)*np.exp(-0.5/kappa - 0.5*
+      ((x - mu)**2)/sigmasq)*((2*np.pi)**(-0.5))
 
     return Distribution(mass)
 

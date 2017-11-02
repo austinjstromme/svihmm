@@ -1,1 +1,3 @@
-import LogMatrixUtil
+from __future__ import absolute_import
+
+from . import LogMatrixUtil

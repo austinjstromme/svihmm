@@ -4,10 +4,10 @@ from numpy import random as nprand
 from scipy.stats import multivariate_normal
 
 # internal packages
-from Distribution import Distribution
-from Exponential import Exponential
-from NDGaussian_impl import _NDGaussianSuffStats as impl
-from NormalInverseWishart import NormalInverseWishart
+from .Distribution import Distribution
+from .Exponential import Exponential
+from .NDGaussian_impl import _NDGaussianSuffStats as impl
+from .NormalInverseWishart import NormalInverseWishart
 
 class NDGaussian(Exponential):
   """
@@ -93,12 +93,17 @@ class NDGaussian(Exponential):
     """
     mu, sigma, kappa, nu = self.prior.get_params()
 
+    #print("params = " + str(self.prior.get_params()))
+
     D = self.mu.shape[0]
     lambduh = self.prior.lambduh_tilde()
     precision = np.linalg.inv(sigma)
 
-    mass = lambda x : ((lambduh**0.5)*np.exp(-D/(2*kappa) - 0.5*nu*
-      (np.inner(x - mu, precision.dot(x - mu))))*((2*np.pi)**(-D/2)))
+    #mass = lambda x : (((2*np.pi)**(-D/2.))*(kappa**(D/2.))*(np.linalg.det(sigma)**(-0.5))
+    #  *np.exp(-kappa/2.*(D/kappa + (np.inner(x - mu, precision.dot(x - mu))))))
+    #mass = lambda x : multivariate_normal.pdf(x, mu, sigma/kappa)
+    mass = lambda x : np.exp(np.log(lambduh)/2 - D/(2*kappa) - nu/2*
+      np.inner(x - mu, precision.dot(x - mu)) - D/2*np.log(2*np.pi))
 
     return Distribution(mass)
 

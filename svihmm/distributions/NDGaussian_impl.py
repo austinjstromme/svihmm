@@ -38,7 +38,7 @@ class _NDGaussianSuffStats():
     kappa = e3
     mu = e1/kappa
     sigma = e2 - np.outer(mu, mu)*kappa
-    nu = e4 - 2 - e1.shape[0]
+    nu = e4 - 2 - mu.shape[0]
 
     return [mu, sigma, kappa, nu]
 
@@ -62,8 +62,8 @@ class _NDGaussianSuffStats():
 
     L = [x for x in mu_0]
 
-    for i in range(0, dim):
-      for j in range(0, dim):
+    for i in xrange(0, dim):
+      for j in xrange(0, dim):
         L.append(sigma_0[i][j])
 
     L.append(kappa_0)
@@ -112,11 +112,9 @@ class _NDGaussianSuffStats():
     L = b - a + 1  # length of this subsequence
     gammas = np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]])
 
-    mu_0 = _NDGaussianSuffStats.__get_mu_0(S, j, a, b, dim)
-
     res = np.zeros((dim, dim))
     for t in range(0, L):
-      res += gammas[t]*(np.outer(obs[t] - mu_0, obs[t] - mu_0))
+      res += gammas[t]*(np.outer(obs[t], obs[t]))
 
     return res
 
