@@ -87,9 +87,8 @@ class Gaussian(Exponential):
     NOTE: the returned distribution may only implement Distribution.py.
     """
     mu, sigmasq, kappa, nu = self.prior.get_params()
-    print("prior params = " + str(self.prior.get_params()))
 
-    expectation_log_sigmasq = np.exp(dg(nu/2) + np.log(2/sigmasq))
+    expectation_log_sigmasq = np.exp(dg(nu/2) + np.log(2./sigmasq))
 
     mass = lambda x : (expectation_log_sigmasq**0.5)*np.exp(-0.5/kappa - 0.5*
       ((x - mu)**2)/sigmasq)*((2*np.pi)**(-0.5))
@@ -110,9 +109,7 @@ class Gaussian(Exponential):
     Returns:
       w: vector of expected sufficient statistics
     """
-    res = impl._GaussianSuffStats.get_stats(S, j, a, b)
-
-    return res
+    return impl._GaussianSuffStats.get_stats(S, j, a, b)
 
   def get_expected_suff(self, S, j):
     """

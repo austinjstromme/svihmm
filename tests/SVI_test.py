@@ -5,7 +5,6 @@ This file does some basic testing of the VBHMM class.
 import numpy as np
 
 # internals
-import context  # for svihmm
 from svihmm.distributions.Multinoulli import Multinoulli as mn
 from svihmm.distributions.Dirichlet import Dirichlet
 from svihmm.models.HMM import HMM

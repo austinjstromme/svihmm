@@ -8,7 +8,6 @@
 import numpy as np
 
 # internals
-import context  # for svihmm
 from svihmm.distributions.Multinoulli import Multinoulli as mn
 from svihmm.models.HMM import HMM
 from svihmm.models.States import States

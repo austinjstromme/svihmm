@@ -93,15 +93,10 @@ class NDGaussian(Exponential):
     """
     mu, sigma, kappa, nu = self.prior.get_params()
 
-    #print("params = " + str(self.prior.get_params()))
-
     D = self.mu.shape[0]
     lambduh = self.prior.lambduh_tilde()
     precision = np.linalg.inv(sigma)
 
-    #mass = lambda x : (((2*np.pi)**(-D/2.))*(kappa**(D/2.))*(np.linalg.det(sigma)**(-0.5))
-    #  *np.exp(-kappa/2.*(D/kappa + (np.inner(x - mu, precision.dot(x - mu))))))
-    #mass = lambda x : multivariate_normal.pdf(x, mu, sigma/kappa)
     mass = lambda x : np.exp(np.log(lambduh)/2 - D/(2*kappa) - nu/2*
       np.inner(x - mu, precision.dot(x - mu)) - D/2*np.log(2*np.pi))
 
@@ -110,7 +105,7 @@ class NDGaussian(Exponential):
   def get_expected_local_suff(self, S, j, a, b):
     """
     Returns the vector of expected sufficient statistics from subchain
-    [a,b].
+    [a, b].
 
     Args:
       S: States object.
@@ -121,9 +116,7 @@ class NDGaussian(Exponential):
     Returns:
       w: vector of expected sufficient statistics
     """
-    l = impl.to_list(impl.get_stats(S, j, a, b, self.mu.shape[0]),
-      self.mu.shape[0])
-    return impl.to_vec(impl.NIW_normal_to_natural(l), self.mu.shape[0])
+    return impl.get_stats(S, j, a, b, self.mu.shape[0])
 
   def get_expected_suff(self, S, j):
     """

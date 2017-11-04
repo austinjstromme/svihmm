@@ -5,7 +5,6 @@ This file does some basic testing of our VB implementation.
 import numpy as np
 
 # internals
-import context  # for svihmm
 from svihmm.distributions.Multinoulli import Multinoulli as mn
 from svihmm.distributions.Dirichlet import Dirichlet
 from svihmm.distributions.Gaussian import Gaussian as norm
@@ -83,29 +82,26 @@ def elbo_increase_Gaussian():
   """
   Run VB on a VBHMM; ensure that elbo is always increasing
   """
-  M_true = make_Gaussian_HMM(0.9, 0.1, 0., 10., 1., 1.)
-  num_steps = 3  # controls length of observation sequences
+  M_true = make_Gaussian_HMM(0.9, 0.1, -5., 5., 1., 1.)
+  num_steps = 50  # controls length of observation sequences
   N = 1  # number of observation sequences
-  cnt = 5 # number of EM steps
+  cnt = 20 # number of EM steps
 
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
-
-  print("obs == " + str(x))
 
   VBlearner = make_Gaussian_VBHMM()
   VBstates = States(VBlearner.gen_M(), x)
 
   incr = True
   last = -np.inf
+  eps = 0.01
 
   for j in range(0, cnt):
-    print("VBlearner = " + str(VBlearner))
     VBlearner.VB_step(VBstates)
     elbo = VBlearner.elbo(VBstates)
-    incr = (elbo > last) and incr
+    incr = ((elbo + eps) > last) and incr
     last = elbo
-    print("elbo = " + str(elbo))
 
   return incr
 
@@ -119,7 +115,7 @@ def elbo_increase_multi_Gaussian():
   M_true = make_multi_Gaussian_HMM(0.9, 0.1, mu_0, mu_1, sigma_0, sigma_0)
   num_steps = 5  # controls length of observation sequences
   N = 1  # number of observation sequences
-  cnt = 10 # number of EM steps
+  cnt = 3# number of EM steps
 
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
@@ -129,11 +125,12 @@ def elbo_increase_multi_Gaussian():
 
   incr = True
   last = -np.inf
+  eps = 0.01
 
   for j in range(0, cnt):
     VBlearner.VB_step(VBstates)
     elbo = VBlearner.elbo(VBstates)
-    incr = (elbo > last) and incr
+    incr = ((elbo + eps) > last) and incr
     last = elbo
 
   return incr
@@ -279,8 +276,6 @@ def make_multi_Gaussian_VBHMM():
   Factory method to create a VBHMM
   """
   K = 2
-  p = 0.5
-  q = 0.5
   # specify hyperparams
   u_A = Dirichlet(np.array([3., 3.]))
   u_pi = Dirichlet(np.array([2., 2.]))

@@ -19,7 +19,7 @@ class _GaussianSuffStats():
       r: list of corresponding natural parameters.
     """
     mu, sigmasq, kappa, nu = l
-    return [kappa*mu, (nu*sigmasq + (mu**2)*kappa)*(-.5), -kappa/2, -nu/2]
+    return [kappa*mu, (nu*sigmasq + (mu**2)*kappa), kappa, nu]
 
   @staticmethod
   def NICS_natural_to_normal(l):
@@ -33,10 +33,10 @@ class _GaussianSuffStats():
       r: [mu_0, sigmasq_0, kappa_0, nu_0].
     """
     e1, e2, e3, e4 = l
-    kappa = -2.*e3
-    nu = -2.*e4
+    kappa = e3
+    nu = e4
     mu = e1/kappa
-    sigmasq = (-2.*e2 - (mu**2)*kappa)/nu
+    sigmasq = (e2 - (mu**2)*kappa)/nu
 
     res = [mu, sigmasq, kappa, nu]
     return [mu, sigmasq, kappa, nu]
@@ -48,8 +48,8 @@ class _GaussianSuffStats():
     kappa_0 = _GaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b)
     nu_0 = kappa_0
 
-    return _GaussianSuffStats.to_vec([mu_0, -0.5*sigmasq_0, -0.5*kappa_0,
-      -0.5*nu_0])
+    return _GaussianSuffStats.to_vec([mu_0, sigmasq_0, kappa_0,
+      nu_0])
 
   @staticmethod
   def to_vec(l):

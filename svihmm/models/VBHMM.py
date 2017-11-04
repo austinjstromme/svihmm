@@ -51,6 +51,7 @@ class VBHMM(object):
     self.w_pi = Dirichlet(u_pi.get_natural() + 1.)
     self.D = D
     for k in range(0, K):
+      # initialize params of D[k] to the passed in hyperparams
       self.D[k].prior.set_natural(u_D[k].get_natural())
 
   def gen_a_b(self, S, buf, L):
