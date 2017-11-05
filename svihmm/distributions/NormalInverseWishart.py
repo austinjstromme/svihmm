@@ -24,7 +24,7 @@ class NormalInverseWishart(Exponential):
 
     Args:
       params: [mu_0, sigma_0, kappa_0, nu_0]
-      prior: unimplented
+      prior: unsupported
     """
     self.dim = params[0].shape[0]
     self.w = _NDGaussianSuffStats.to_vec(params, self.dim)

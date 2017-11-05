@@ -80,22 +80,22 @@ def main():
   data = [HMM_true.gen_obs(obs_sequence_length)]
 
   # set subchain length, bufs, and learning rate
-  L = 30
-  bufs = [5, 10, 50]
-  rho = 0.01
+  buf = 20
+  Ls = [10, 50, 250]
+  rho = 0.02
 
   elbos = []
-  for buf in bufs:
+  for L in Ls:
     elbos.append(run_SVI(buf, L, rho, data))
 
   colos = ['r', 'b', 'g']
-  for i in range(len(bufs)):
-    plt.plot(elbos[i], label=('buf = ' + str(bufs[i])), color=colos[i])
+  for i in range(len(Ls)):
+    plt.plot(elbos[i], label=('L = ' + str(Ls[i])), color=colos[i])
 
   plt.xlabel("SVI step")
   plt.ylabel("ELBO value")
 
-  plt.title("SVI demo, buf = 5, L = 20, rho = 0.01")
+  plt.title("SVI demo, buf = " + str(buf) + ", rho = " + str(rho))
 
   plt.legend()
 

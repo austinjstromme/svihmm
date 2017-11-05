@@ -140,7 +140,7 @@ class Multinoulli(Exponential):
 
   def local_obs_count(self, x, gamma_data, j, a, b):
     """
-    returns numpy vector whose lth coordinate is the log of the expected
+    Returns numpy vector whose lth coordinate is the log of the expected
     number of times an observation was in state j and emitted an l;
     a <= t <= b
     """
@@ -180,4 +180,3 @@ class Multinoulli(Exponential):
 
   def __str__(self):
     return str(self.params)
-    

@@ -49,15 +49,14 @@ def compare_simple(eps):
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
-  SVIlearner = make_VBHMM()
-  SVIstates = States(SVIlearner.gen_M(), x)
+  SVIlearner = make_VBHMM(x)
 
   buf = 5
   L = 20
   rho = 0.01
 
   for j in range(0, cnt):
-    SVIlearner.SVI_step(SVIstates, buf, L, rho)
+    SVIlearner.SVI_step(buf, L, rho)
 
   diff = SVIlearner.gen_M().compare(M_true, local=True)
 
@@ -100,15 +99,14 @@ def compare_correct(eps):
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
   # generate observation sequences
-  SVIlearner = make_correct_VBHMM(M_true)
-  SVIstates = States(SVIlearner.gen_M(), x)
+  SVIlearner = make_correct_VBHMM(M_true, x)
 
   buf = 5
   L = 20
   rho = 0.01
 
   for j in range(0, cnt):
-    SVIlearner.SVI_step(SVIstates, buf, L, rho)
+    SVIlearner.SVI_step(buf, L, rho)
 
   found_M = SVIlearner.gen_M()
 
@@ -119,7 +117,7 @@ def compare_correct(eps):
 
   return (diff < eps)
 
-def make_correct_VBHMM(M_true):
+def make_correct_VBHMM(M_true, x):
   """
   Factory method to create "correct" VBHMM according to M_true
   """
@@ -130,12 +128,12 @@ def make_correct_VBHMM(M_true):
   for k in range(0, K):
     u_D.append(Dirichlet(M_true.D[k].params*20.))
   D = [mn([0.5, 0.5]), mn([0.5, 0.5])]
-  res = VBHMM(K, u_A, u_pi, u_D, D)
+  res = VBHMM(K, u_A, u_pi, u_D, D, x)
   for k in range(0, K):
     res.w_A[k].set_natural(20.*np.exp(M_true.A[k]))
   return res
 
-def make_VBHMM():
+def make_VBHMM(x):
   """
   Factory method to create a fairly generic VBHMM
   """
@@ -147,5 +145,5 @@ def make_VBHMM():
   u_pi = Dirichlet(np.array([2., 2.]))
   u_D = [Dirichlet(np.array([3., 2.]))] + [Dirichlet(np.array([2., 3.]))]
   D = [mn([p, 1. - p]), mn([q, 1. - q])]
-  return VBHMM(K, u_A, u_pi, u_D, D)
+  return VBHMM(K, u_A, u_pi, u_D, D, x)
 

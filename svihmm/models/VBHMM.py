@@ -5,6 +5,7 @@ import numpy as np
 
 # internals
 from .HMM import HMM
+from .States import States
 from ..distributions.Dirichlet import Dirichlet
 from ..distributions.Multinoulli import Multinoulli
 from ..utils import LogMatrixUtil as lm
@@ -27,9 +28,10 @@ class VBHMM(object):
         variational approximation q
       D - list of K exponential family distributions (see Exponential.py)
         governing emissions from the hidden states. Each with a prior.
+      S - a States object holding our local beliefs about the observations.
   """
 
-  def __init__(self, K, u_A, u_pi, u_D, D):
+  def __init__(self, K, u_A, u_pi, u_D, D, obs):
     """
     Initializes a VBHMM with K hidden states.
 
@@ -40,6 +42,7 @@ class VBHMM(object):
       u_D: list of priors governing hyperparameters on the emissions
       D: list of K exp family dists (see Exponential.py) governing
         emissions
+      obs: list of observations associated this will learn on
     """
     self.K = K
     #save hyperparams u_A, u_pi, u_D
@@ -54,12 +57,13 @@ class VBHMM(object):
       # initialize params of D[k] to the passed in hyperparams
       self.D[k].prior.set_natural(u_D[k].get_natural())
 
-  def gen_a_b(self, S, buf, L):
+    self.S = States(self.gen_M(), obs)
+
+  def gen_a_b(self, buf, L):
     """
     Randomly generates an interval of length L with buffer size buf.
 
     Args:
-      S: states object.
       buf: buffer size.
       L: interval length.
 
@@ -67,27 +71,24 @@ class VBHMM(object):
       [a,b]: uniformly random interval of length L in [0, T], T being the
       length of the first observation sequence of S.
     """
-    T = len(S.data[0])
+    T = len(self.S.data[0])
     a = randrange(buf, T - L - buf)
     b = a + L
     return [a, b]
 
-  def batch_SVI_step(self, S, buf, L, rho, M):
+  def batch_SVI_step(self, buf, L, rho, M):
     """
     Does a single SVI step using buf as the buffer size and a minibatch
     of size M.
 
     Args:
-      S: a States object. We will only do inference on the first data
-        sequence
       buf: integer determining the size of the buffer for our local
         update step
       L: length of the subchain
       rho: stepsize
 
     Effects:
-      self: updates this VBHMM's fields.
-      S: updates the gamma and xi tables
+      self: updates variational parameters along with beliefs in self.S.
     """
     trans = np.zeros((self.K, self.K))
     emissions = [np.zeros(len(self.D[k].prior.get_natural()))
@@ -95,29 +96,29 @@ class VBHMM(object):
     #emission = np.zeros((self.K, self.D[0].L))
 
     # generate the subchains:
-    subchains = [self.gen_a_b(S, buf, L) for i in range(0, M)]
+    subchains = [self.gen_a_b(buf, L) for i in range(0, M)]
 
     # do local e-steps:
-    S.M = self.gen_M(local=True)
+    self.S.M = self.gen_M(local=True)
     for i in range(0, M):
-      S.e_step_row_sub_chain(0, subchains[i][0], subchains[i][1], buf)
+      self.S.e_step_row_sub_chain(0, subchains[i][0], subchains[i][1], buf)
 
     # now get sufficient statistics
     for i in range(0, M):
       a, b = subchains[i]
-      trans += np.exp(S.get_local_trans(a, b))
+      trans += np.exp(self.S.get_local_trans(a, b))
       for j in range(0, self.K):
-        emissions[j] += self.D[j].get_expected_local_suff(S, j, a, b)
+        emissions[j] += self.D[j].get_expected_local_suff(self.S, j, a, b)
 
     # now update natural params for A
-    c_A = float(len(S.data[0]) - L + 1)/(L - 1)
+    c_A = float(len(self.S.data[0]) - L + 1)/(L - 1)
     for j in range(0, self.K):
       new_row = (self.u_A.get_natural() + (c_A/float(M))*trans[j])
       temp = (1. - rho)*self.w_A[j].get_natural() + rho*new_row
       self.w_A[j].set_natural(temp)
 
     # update the natural params of the priors on our emissions
-    c_phi = float(len(S.data[0]) - L + 1)/L
+    c_phi = float(len(self.S.data[0]) - L + 1)/L
     for j in range(0, self.K):
       dist = self.D[j]
       new_row = (c_phi/float(M))*emissions[j]
@@ -125,36 +126,30 @@ class VBHMM(object):
       temp = (1. - rho)*dist.prior.get_natural() + rho*new_row
       dist.prior.set_natural(temp)
 
-  def SVI_step(self, S, buf, L, rho):
+  def SVI_step(self, buf, L, rho):
     """
     Does a single SVI step using buf as the buffer size.
 
     Args:
-      S: a States object. We will only do inference on the first data
-        sequence
       buf: integer determining the size of the buffer for our local
         update step
       L: length of the subchain
       rho: stepsize
 
     Effects:
-      self: updates this VBHMM's fields
-      S: updates the gamma and xi tables
+      self: updates this VBHMM's variational parameters and beliefs in self.S
     """
-    self.batch_SVI_step(S, buf, L, rho, 1)
+    self.batch_SVI_step(buf, L, rho, 1)
 
-  def VB_step(self, S):
+  def VB_step(self):
     """
     Does a single VB step.
 
-    Args:
-      S: a States object
-
     Effects:
-      self: updates this VBHMM's fields.
+      self: updates this VBHMM's variational parameters and beliefs in self.S
     """
     #update A
-    trans = np.exp(S.get_trans())
+    trans = np.exp(self.S.get_trans())
     for j in range(0, self.K):
       new_row = self.u_A.get_natural() + trans[j]
       self.w_A[j].set_natural(new_row)
@@ -162,21 +157,16 @@ class VBHMM(object):
     # update emissions
     for j in range(0, self.K):
       dist = self.D[j]
-      expected_suff = dist.get_expected_suff(S, j)
-      prior = self.u_D[j].get_natural()
-
-      #print("expected_suff = " + str(expected_suff))
-      #print("prior = " + str(prior))
-      #print("sum = " + str(prior + expected_suff))
-      dist.prior.set_natural(expected_suff + prior)
+      dist.prior.set_natural(dist.get_expected_suff(self.S, j)
+        + self.u_D[j].get_natural())
 
     # update pi
-    new_pi = self.u_pi.get_natural() + np.exp(S.get_start())
+    new_pi = self.u_pi.get_natural() + np.exp(self.S.get_start())
     self.w_pi.set_natural(new_pi)
 
     #do e step
-    S.M = self.gen_M()
-    S.e_step()
+    self.S.M = self.gen_M()
+    self.S.e_step()
 
   def gen_M(self, local=False):
     """
@@ -217,28 +207,20 @@ class VBHMM(object):
 
     return HMM(self.K, A, pi, Dists)
 
-  def elbo(self, S):
+  def elbo(self):
     """
     Returns the Evidence Lower Bound (elbo) of this VBHMM with states
     S. Note: this only valid immediately after an e-step has been done.
-
-    Args:
-      S: a States object which points to a current auxiliary HMM for this
-        VBHMM
 
     Returns:
       elbo
     """
     res = -self.u_pi.KL_div(self.w_pi)
     for j in range(0, self.K):
-      res -= self.u_A.KL_div(self.w_A[j])
-      div_j = self.u_D[j].KL_div(self.D[j].prior)
-      #print("KL_div in " + str(j) + "th component = " + str(div_j))
-      res -= div_j
+      res -= (self.u_A.KL_div(self.w_A[j])
+        + self.u_D[j].KL_div(self.D[j].prior))
 
-    ll = S.LL()
-    #print("                     LL = " + str(ll))
-    res += ll
+    res += self.S.LL()
     return res
 
   def __str__(self):

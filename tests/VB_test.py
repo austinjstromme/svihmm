@@ -64,15 +64,14 @@ def elbo_increase():
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
-  VBlearner = make_VBHMM()
-  VBstates = States(VBlearner.gen_M(), x)
+  VBlearner = make_VBHMM(x)
 
   incr = True
   last = -np.inf
 
   for j in range(0, cnt):
-    VBlearner.VB_step(VBstates)
-    elbo = VBlearner.elbo(VBstates)
+    VBlearner.VB_step()
+    elbo = VBlearner.elbo()
     incr = (elbo > last) and incr
     last = elbo
 
@@ -90,16 +89,15 @@ def elbo_increase_Gaussian():
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
-  VBlearner = make_Gaussian_VBHMM()
-  VBstates = States(VBlearner.gen_M(), x)
+  VBlearner = make_Gaussian_VBHMM(x)
 
   incr = True
   last = -np.inf
   eps = 0.01
 
   for j in range(0, cnt):
-    VBlearner.VB_step(VBstates)
-    elbo = VBlearner.elbo(VBstates)
+    VBlearner.VB_step()
+    elbo = VBlearner.elbo()
     incr = ((elbo + eps) > last) and incr
     last = elbo
 
@@ -120,16 +118,15 @@ def elbo_increase_multi_Gaussian():
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
-  VBlearner = make_multi_Gaussian_VBHMM()
-  VBstates = States(VBlearner.gen_M(), x)
+  VBlearner = make_multi_Gaussian_VBHMM(x)
 
   incr = True
   last = -np.inf
   eps = 0.01
 
   for j in range(0, cnt):
-    VBlearner.VB_step(VBstates)
-    elbo = VBlearner.elbo(VBstates)
+    VBlearner.VB_step()
+    elbo = VBlearner.elbo()
     incr = ((elbo + eps) > last) and incr
     last = elbo
 
@@ -150,11 +147,10 @@ def compare_simple(eps):
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
-  VBlearner = make_VBHMM()
-  VBstates = States(VBlearner.gen_M(), x)
+  VBlearner = make_VBHMM(x)
 
   for j in range(0, cnt):
-    VBlearner.VB_step(VBstates)
+    VBlearner.VB_step()
 
   diff = VBlearner.gen_M().compare(M_true)
 
@@ -175,11 +171,10 @@ def compare_correct(eps):
   # generate observation sequences
   x = [M_true.gen_obs(num_steps) for j in xrange(0, N)]
 
-  VBlearner = make_correct_VBHMM(M_true)
-  VBstates = States(VBlearner.gen_M(), x)
+  VBlearner = make_correct_VBHMM(M_true, x)
 
   for j in range(0, cnt):
-    VBlearner.VB_step(VBstates)
+    VBlearner.VB_step()
 
   diff = VBlearner.gen_M().compare(M_true)
 
@@ -205,7 +200,7 @@ def biased_coins_HMM(p, q, t_1, t_2):
   
   return HMM(K, A, pi, D)
 
-def make_correct_VBHMM(M_true):
+def make_correct_VBHMM(M_true, x):
   """
   Factory method to create "correct" VBHMM true HMM M_true
   """
@@ -216,12 +211,12 @@ def make_correct_VBHMM(M_true):
   for k in range(0, K):
     u_D.append(Dirichlet(M_true.D[k].params*20.))
   D = [mn([0.5, 0.5]), mn([0.5, 0.5])]
-  res = VBHMM(K, u_A, u_pi, u_D, D)
+  res = VBHMM(K, u_A, u_pi, u_D, D, x)
   for k in range(0, K):
     res.w_A[k].set_natural(20.*np.exp(M_true.A[k]))
   return res
 
-def make_VBHMM():
+def make_VBHMM(x):
   """
   Factory method to create a VBHMM
   """
@@ -233,7 +228,7 @@ def make_VBHMM():
   u_pi = Dirichlet(np.array([2., 2.]))
   u_D = [Dirichlet(np.array([3., 2.]))] + [Dirichlet(np.array([2., 3.]))]
   D = [mn([p, 1. - p]), mn([q, 1. - q])]
-  return VBHMM(K, u_A, u_pi, u_D, D)
+  return VBHMM(K, u_A, u_pi, u_D, D, x)
 
 def make_Gaussian_HMM(t_1, t_2, m_1, m_2, s_1, s_2):
   K = 2
@@ -251,7 +246,7 @@ def make_multi_Gaussian_HMM(t_1, t_2, m_1, m_2, s_1, s_2):
   
   return HMM(K, A, pi, D)
 
-def make_Gaussian_VBHMM():
+def make_Gaussian_VBHMM(x):
   """
   Factory method to create a VBHMM
   """
@@ -269,9 +264,9 @@ def make_Gaussian_VBHMM():
   suff_stats_two = [10., 2., 2., 2.]
   u_D = [nics(suff_stats_one), nics(suff_stats_two)]
   D = [norm([0., 1.]), norm([0., 1.])]
-  return VBHMM(K, u_A, u_pi, u_D, D)
+  return VBHMM(K, u_A, u_pi, u_D, D, x)
 
-def make_multi_Gaussian_VBHMM():
+def make_multi_Gaussian_VBHMM(x):
   """
   Factory method to create a VBHMM
   """
@@ -289,6 +284,6 @@ def make_multi_Gaussian_VBHMM():
   mu = np.array([0., 0.])
   sigma = np.eye(2)
   D = [mnorm([mu, sigma]), mnorm([mu, sigma])]
-  return VBHMM(K, u_A, u_pi, u_D, D)
+  return VBHMM(K, u_A, u_pi, u_D, D, x)
 
 run()
