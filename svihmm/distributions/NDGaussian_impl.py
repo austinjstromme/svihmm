@@ -44,10 +44,16 @@ class _NDGaussianSuffStats():
 
   @staticmethod
   def get_stats(S, j, a, b, dim):
-    mu_0 = _NDGaussianSuffStats.__get_mu_0(S, j, a, b, dim)
-    sigma_0 = _NDGaussianSuffStats.__get_sigma_0(S, j, a, b, dim)
-    kappa_0 = _NDGaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b, dim)
-    nu_0 = kappa_0
+    kappa_0 = 0.
+    nu_0 = 0.
+    mu_0 = np.zeros(dim)
+    sigma_0 = np.zeros((dim, dim))
+
+    for i in range(0, len(S.data)):
+      mu_0 += _NDGaussianSuffStats.__get_mu_0(S, i, j, a, b, dim)
+      sigma_0 += _NDGaussianSuffStats.__get_sigma_0(S, i, j, a, b, dim)
+      kappa_0 += _NDGaussianSuffStats.__get_kappa_or_nu_0(S, i, j, a, b, dim)
+      nu_0 += kappa_0
 
     return _NDGaussianSuffStats.to_vec([mu_0, sigma_0, kappa_0, nu_0], dim)
 
@@ -95,10 +101,10 @@ class _NDGaussianSuffStats():
     return [mu_0, sigma_0, kappa_0, nu_0]
 
   @staticmethod
-  def __get_mu_0(S, j, a, b, dim):
-    obs = S.data[0][a : (b + 1)]
+  def __get_mu_0(S, i, j, a, b, dim):
+    obs = S.data[i][a : (b + 1)]
     L = b - a + 1  # length of this subsequence
-    gammas = np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]])
+    gammas = np.array([np.exp(g[j]) for g in S.gamma[i][a : (b + 1)]])
 
     res = np.zeros(dim)
     for t in range(0, L):
@@ -107,10 +113,10 @@ class _NDGaussianSuffStats():
     return res
 
   @staticmethod
-  def __get_sigma_0(S, j, a, b, dim):
-    obs = S.data[0][a : (b + 1)]  
+  def __get_sigma_0(S, i, j, a, b, dim):
+    obs = S.data[i][a : (b + 1)]  
     L = b - a + 1  # length of this subsequence
-    gammas = np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]])
+    gammas = np.array([np.exp(g[j]) for g in S.gamma[i][a : (b + 1)]])
 
     res = np.zeros((dim, dim))
     for t in range(0, L):
@@ -119,11 +125,11 @@ class _NDGaussianSuffStats():
     return res
 
   @staticmethod
-  def __get_kappa_or_nu_0(S, j, a, b, dim):
-    return np.sum(np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]]))
+  def __get_kappa_or_nu_0(S, i, j, a, b, dim):
+    return np.sum(np.array([np.exp(g[j]) for g in S.gamma[i][a : (b + 1)]]))
 
   @staticmethod
-  def maximize_likelihood_helper(S, j, a, b, dim):
+  def maximize_likelihood_helper(S, j, dim):
     """
     Returns parameters which maximize the likelihood of it being the jth
     hidden state's emitter for time interval [a,b].
@@ -131,24 +137,32 @@ class _NDGaussianSuffStats():
     Args:
       S: states object.
       j: hidden state we correspond to
-      a: beginning of subchain
-      b: end of subchain
+      dim: dimension of the corresponding NDGaussian
 
     Returns:
       r: [mu, sigma]
     """
-    kappa = _NDGaussianSuffStats.__get_kappa_or_nu_0(S, j, a, b, dim)
-  
-    mu = _NDGaussianSuffStats.__get_mu_0(S, j, a, b, dim)/kappa
+    a = 0
+    b = len(S.data[0]) - 1
 
-    obs = S.data[0][a : (b + 1)]
-    L = b - a + 1  # length of this subsequence
-    gammas = np.array([np.exp(g[j]) for g in S.gamma[0][a : (b + 1)]])
-  
+    kappa = 0.
+    mu = np.zeros(dim)
     sigma = np.zeros((dim, dim))
-    for t in range(0, L):
-      sigma += gammas[t]*(np.outer(obs[t] - mu, obs[t] - mu))
-  
+
+    for i in range(0, len(S.data)):
+      kappa += _NDGaussianSuffStats.__get_kappa_or_nu_0(S, i, j, a, b, dim)
+      mu += _NDGaussianSuffStats.__get_mu_0(S, i, j, a, b, dim)
+
+    mu /= kappa
+
+    L = b - a + 1
+    for i in range(0, len(S.data)):
+      obs = S.data[i][a : (b + 1)]
+      gammas = np.array([np.exp(g[j]) for g in S.gamma[i][a : (b + 1)]])
+
+      for t in range(0, L):
+        sigma += gammas[t]*(np.outer(obs[t] - mu, obs[t] - mu))
+
     sigma /= kappa
   
     return [mu, sigma]

@@ -1,16 +1,12 @@
 """
 We learn a HMM with 2 hidden states each with 2D Gaussian emissions.
 """
-#TODO: make this easier to understand
-
 # import numpy and svihmm
 import numpy as np
-import context  # for svihmm
 
 # import models
-from svihmm.models.States import States # message passing object
-from svihmm.models.HMM import HMM
-from svihmm.models.VBHMM import VBHMM
+from svihmm.models.HMM import HMM # basic HMM class
+from svihmm.models.VBHMM import VBHMM # basic Bayesian HMM class
 
 # import distributions
 from svihmm.distributions.Dirichlet import Dirichlet
@@ -20,7 +16,7 @@ from svihmm.distributions.NormalInverseWishart import NormalInverseWishart as ni
 # import plotting
 import matplotlib.pyplot as plt
 
-def make_VBHMM():
+def make_VBHMM(data):
   """
   Factory method to create a fairly generic VBHMM.
   """
@@ -38,7 +34,7 @@ def make_VBHMM():
   mu = np.array([0., 0.])
   sigma = np.eye(2)
   D = [mnorm([mu, sigma]), mnorm([mu, sigma])]
-  return VBHMM(K, u_A, u_pi, u_D, D)
+  return VBHMM(K, u_A, u_pi, u_D, D, data)
   
 def make_HMM():
   t_1 = 0.9
@@ -58,24 +54,25 @@ def run_SVI(buf, L, rho, data):
   elbos = []
 
   # make our learner and initialize its local belief probabilities
-  learner = make_VBHMM()
-  states = States(learner.gen_M(), data)
+  learner = make_VBHMM(data)
 
-  # do a few SVI steps so it's easier to see differences in the plots
+  # burn in
   for j in range(5):
-    learner.SVI_step(states, buf, L, rho)
+    learner.SVI_step(buf, L, rho)
 
+  # now start tracking the ELBO
   for j in range(10):
-    learner.SVI_step(states, buf, L, rho)
-    elbos.append(learner.elbo(states))
+    learner.SVI_step(buf, L, rho)
+    elbos.append(learner.elbo())
 
+  print("elbos = " + str(elbos))
   return elbos
 
 def main():
   # create the HMM which will make our synthetic data
   HMM_true = make_HMM()
   # number of observations to generate
-  obs_sequence_length = 10000
+  obs_sequence_length = 1000
   # generate the data
   data = [HMM_true.gen_obs(obs_sequence_length)]
 

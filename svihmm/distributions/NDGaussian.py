@@ -144,10 +144,9 @@ class NDGaussian(Exponential):
       S: States object.
       j: the hidden state this distribution corresponds to.
     """
-    T = len(S.data[0])
     dim = self.mu.shape[0]
 
-    self.mu, self.sigma = impl.maximize_likelihood_helper(S, j, 0, T - 1, dim)
+    self.mu, self.sigma = impl.maximize_likelihood_helper(S, j, dim)
 
   def mass(self, x):
     """

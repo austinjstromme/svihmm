@@ -15,20 +15,20 @@ class VBHMM(object):
     A VBHMM is a HMM that supports variational bayesian inference.
 
     Attributes:
-      K - the number of hidden states
-      u_pi - Dirichlet distribution governing the hyperparameter
+      K: the number of hidden states
+      u_pi: Dirichlet distribution governing the hyperparameter
         on the start vector
-      u_A - Dirichlet distribution governing the hyperparameter
+      u_A: Dirichlet distribution governing the hyperparameter
         on the rows of A
-      u_D - list of distributions governing the hyperparmeters
+      u_D: list of distributions governing the hyperparmeters
         on the emissions
-      w_pi - Dirichlet distribution governing the current variational
+      w_pi: Dirichlet distribution governing the current variational
         approximation q
-      w_A - a list of K Dirichlet distributions governing the current
+      w_A: a list of K Dirichlet distributions governing the current
         variational approximation q
-      D - list of K exponential family distributions (see Exponential.py)
+      D: list of K exponential family distributions (see Exponential.py)
         governing emissions from the hidden states. Each with a prior.
-      S - a States object holding our local beliefs about the observations.
+      S: a States object holding our local beliefs about the observations.
   """
 
   def __init__(self, K, u_A, u_pi, u_D, D, obs):
@@ -100,8 +100,9 @@ class VBHMM(object):
 
     # do local e-steps:
     self.S.M = self.gen_M(local=True)
-    for i in range(0, M):
-      self.S.e_step_row_sub_chain(0, subchains[i][0], subchains[i][1], buf)
+    for i in range(0, len(self.S.data)):
+      for m in range(0, M):
+        self.S.e_step_row_sub_chain(i, subchains[m][0], subchains[m][1], buf)
 
     # now get sufficient statistics
     for i in range(0, M):

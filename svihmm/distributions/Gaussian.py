@@ -149,10 +149,7 @@ class Gaussian(Exponential):
       S: States object.
       j: the hidden state this distribution corresponds to.
     """
-    T = len(S.data[0])
-
-    mu, sigma = impl._GaussianSuffStats.maximize_likelihood_helper(
-                S, j, 0, T - 1)
+    mu, sigma = impl._GaussianSuffStats.maximize_likelihood_helper(S, j)
 
     self.mu = mu
     self.sigma = sigma

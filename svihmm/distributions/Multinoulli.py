@@ -1,4 +1,4 @@
-# exteneral packages
+# external packages
 from numpy import random as nprand
 from scipy.misc import logsumexp
 from scipy.special import digamma as dg
@@ -120,7 +120,7 @@ class Multinoulli(Exponential):
     Returns:
       w: a np.array of length L where is the number of parameters of the prior.
     """
-    return np.exp(self.obs_count(S.data, S.gamma, j))
+    return np.exp(self.obs_count(S, j))
 
   def get_expected_local_suff(self, S, j, a, b):
     """
@@ -130,41 +130,53 @@ class Multinoulli(Exponential):
     Args:
       S: States object.
       j: the hidden state this distribution corresponds to.
-      a: state of the subchain.
+      a: start of the subchain.
       b: end of the subchain.
 
     Returns:
-      w: vector of expected sufficient statistics
+      w: vector of expected sufficient statistics.
     """
-    return np.exp(self.local_obs_count(S.data, S.gamma, j, a, b))
+    return np.exp(self.local_obs_count(S, j, a, b))
 
-  def local_obs_count(self, x, gamma_data, j, a, b):
+  def local_obs_count(self, S, j, a, b):
     """
-    Returns numpy vector whose lth coordinate is the log of the expected
-    number of times an observation was in state j and emitted an l;
-    a <= t <= b
+    Returns vector whose lth coordinate is the log of the expected
+    number of times an observation from the given subchain was in
+    state j and emitted an l.
+
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
+      a: start of the subchain.
+      b: end of the subchain.
+
+    Returns:
+      w: length L numpy vector of local observation counts.
     """
+    x = S.data
+    gamma_data = S.gamma
+
     res = np.zeros((self.L, b - a + 1)) - np.inf
 
-    for i in range(0, 1):
+    for i in range(0, len(gamma_data)):
       for t in range(a, b + 1):
-        res[x[i][t]][t - a] = gamma_data[i][t][j]
+        res[x[i][t]][t - a] = logsumexp([res[x[i][t]][t - a], gamma_data[i][t][j]])
 
     return logsumexp(res, axis=1)
 
-  def obs_count(self, x, gamma_data, j):
+  def obs_count(self, S, j):
     """
-    Returns a vector whose lth coord is the log of the expected
-    number of times an observation was in state j and emitted an l
-    """
-    N = len(x)
-    res = []
+    Returns vector whose lth coordinate is the log of the expected
+    number of times an observation was in state j and emitted an l.
 
-    for i in range(0, N):
-      res.append(self.local_obs_count([x[i]], [gamma_data[i]], j,
-                  0, len(x[i]) - 1))
-    res = np.array(res)
-    return logsumexp(res, axis=0)
+    Args:
+      S: States object.
+      j: the hidden state this distribution corresponds to.
+
+    Returns:
+      w: length L numpy vector of local observation counts.
+    """
+    return self.local_obs_count(S, j, 0, len(S.data[0]) - 1)
 
   def mass(self, x):
     """

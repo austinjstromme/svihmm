@@ -33,9 +33,10 @@ class States(object):
     (possibly empty) x.
 
     Args:
-      M (HMM): the HMM we wnat this States object to be associated with
-      x: a list of N observation seqeunces; x[i] is a list of length T_i
-      observations
+      M: the HMM we wnat this States object to be associated with
+      x: a list of N observation sequences; x[i] is a list of length T_i
+        observations
+      N: the number of observation sequences
     """
     self.M = M
     self.data = x
@@ -101,7 +102,7 @@ class States(object):
             for k in range(0, len(self.M.D))]
             for t in range(0, len(x))]
 
-    [alpha, Z] = self.forward_alg(x, psi)
+    alpha, Z = self.forward_alg(x, psi)
     beta = self.backward_alg(x, psi)
 
     #gamma updates
